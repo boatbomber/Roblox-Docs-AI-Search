@@ -74,16 +74,21 @@ def download_documents(documentation_filepaths):
 def get_document_metadata(filepath, document):
 	metadata_match = METADATA_PATTERN.match(document)
 
+	metadata = {}
+	metadata["path"] = filepath
+
 	if metadata_match == None:
 		print("> Failed to get metadata for " + filepath)
-		return {
-			"path": filepath,
-		}
+		# Use filename as title
+		metadata["title"] = os.path.basename(filepath).replace(".md", "")
+		metadata["description"] = ""
 	else:
 		metadata_str = metadata_match.group(1)
 		metadata_dict = yaml.load(metadata_str, Loader=Loader)
-		metadata_dict["path"] = filepath
-		return metadata_dict
+		metadata["title"] = metadata_dict["title"] or os.path.basename(filepath).replace(".md", "")
+		metadata["description"] = metadata_dict["description"] or ""
+
+	return metadata
 
 def prepare_document_for_ingest(document):
 	# Remove metadata header (---...---)
