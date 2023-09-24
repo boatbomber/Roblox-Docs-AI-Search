@@ -28,6 +28,12 @@ jobs:
         run: |
           python indexer/embedder.py
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Build
+          path: build
+
       - name: Get release info
         id: release_info
         run: |
@@ -43,4 +49,4 @@ jobs:
           body: "${{ steps.release_info.outputs.release_body }}"
           tag: "roblox-documentation.${{ steps.release_info.outputs.timestamp }}"
           artifacts: "build/docs-embeddings.json, build/indexed-files.json, build/docs-source-commit.txt"
-          skipIfReleaseExists: true
+          skipIfReleaseExists: false
