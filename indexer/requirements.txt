@@ -1,0 +1,6 @@
+requests
+PyYAML
+openai
+pandas
+python-dotenv
+tiktoken

@@ -1,0 +1,46 @@
+name: 'Index Roblox Documentation'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install python dependencies
+        run: pip install -r indexer/requirements.txt
+
+      - name: Index documentation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python indexer/embedder.py
+
+      - name: Get release info
+        id: release_info
+        run: |
+          echo "timestamp=$(date +%m-%d-%y)" >> $GITHUB_OUTPUT
+          echo 'release_body<<EOF' >> $GITHUB_OUTPUT
+          echo "$(cat build/summary.md)" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "Roblox Documentation Index ${{ steps.release_info.outputs.timestamp }}"
+          body: "${{ steps.release_info.outputs.release_body }}"
+          tag: "roblox-documentation.${{ steps.release_info.outputs.timestamp }}"
+          artifacts: "build/docs-embeddings.json, build/indexed-files.json, build/docs-source-commit.txt"
+          skipIfReleaseExists: true
