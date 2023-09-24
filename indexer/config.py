@@ -15,8 +15,5 @@ GH_REQ_HEADERS = {
 }
 
 ALLOWLISTED_DOCUMENT_PATHS = {
-	'en-us/tutorials',
-	'en-us/luau',
-	'en-us/production/game-design',
-	'en-us/scripting',
+	'en-us/', # All english documentation
 }
