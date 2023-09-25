@@ -1,4 +1,5 @@
 --!native
+--!optimize 2
 --!strict
 
 local HttpService = game:GetService("HttpService")
@@ -48,6 +49,7 @@ function DocsAISearch.new(config: Config)
 		_IndexSourceUrl = config.IndexSourceUrl or "https://github.com/boatbomber/Roblox-Docs-AI-Search/releases/latest/download/docs-embeddings.json",
 		_GithubKey = config.GithubKey,
 		_OpenAIKey = config.OpenAIKey,
+		_IsLoading = false,
 	}, DocsAISearch)
 
 	return self
@@ -143,6 +145,20 @@ function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { Neigh
 end
 
 function DocsAISearch:Load()
+	-- Don't load redundantly
+	if self.IsLoaded then
+		return
+	end
+	-- If already loading in another thread, just wait for that to finish
+	if self._IsLoading then
+		repeat
+			task.wait()
+		until self.IsLoaded
+		return
+	end
+
+	self._IsLoading = true
+
 	local loadSuccess, loadResponse = pcall(HttpService.RequestAsync, HttpService, {
 		Url = self._IndexSourceUrl,
 		Method = "GET",
@@ -169,6 +185,7 @@ function DocsAISearch:Load()
 
 	self.Documents = decodeResponse
 	self.IsLoaded = true
+	self._IsLoading = false
 end
 
 function DocsAISearch:Query(query: string, count: number?): { token_usage: number, result: { error: string?, documents: { Document }?} }
