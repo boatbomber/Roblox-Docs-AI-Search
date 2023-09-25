@@ -31,7 +31,7 @@ Install using wally:
 
 ```toml
 [server-dependencies]
-DocsAISearch = "boatbomber/robloxdocsaisearch@0.1.0"
+DocsAISearch = "boatbomber/robloxdocsaisearch@0.1.1"
 ```
 
 ### Usage
