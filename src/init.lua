@@ -14,15 +14,15 @@ export type Config = {
 export type Vector = { number }
 
 export type SourceDocument = {
+	type: string,
 	title: string,
-	section: string,
 	content: string,
 	embedding: Vector?,
 }
 
 export type Document = {
+	type: string,
 	title: string,
-	section: string,
 	content: string,
 }
 
@@ -222,8 +222,8 @@ function DocsAISearch:Query(query: string, count: number?): { token_usage: numbe
 	local results = table.create(k)
 	for i, neighbor in ipairs(nearestNeighbors) do
 		results[i] = {
+			type = neighbor.item.type or "",
 			title = neighbor.item.title or "",
-			section = neighbor.item.section or "",
 			content = neighbor.item.content or "",
 		}
 	end
