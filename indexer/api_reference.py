@@ -80,6 +80,11 @@ def replace_api_identifiers(content, used_identifiers, object, should_mark_used=
 
 
 def get_reference():
+    # TODO: Use https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/API-Dump.json
+    # to get the API dump and then use the below documentation-api-refs to
+    # generate markdown documents for each instance/enum/etc
+    # (This will be more usable, and ~1000 documents instead of ~7200)
+
     res = requests.get(
         "https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/api-docs/mini/en-us.json"
     )
