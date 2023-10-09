@@ -78,12 +78,12 @@ def create_dataframe(documents, reference):
                 model=EMBEDDING_MODEL, input=embed_batch)
             data["embedding"].extend(
                 list(map(lambda data: data['embedding'], response['data'])))
-        except:
-            print("Failed to get embedding for " + metadata["title"])
+        except Exception as e:
+            print("Failed to get embedding for " + metadata["title"], e)
             data["embedding"].extend([None] * len(embed_batch))
 
     # Handle the API reference
-    reference_embed_batch = []
+    reference_embed_batch, reference_batch_tokens = [], 0
     for key in reference:
         # Turn the ref object into a string
         content = json.dumps(reference[key])
@@ -96,22 +96,37 @@ def create_dataframe(documents, reference):
         data["content"].append(content)
 
         embeddable_content = "# " + key + "\n" + content
-        if count_tokens(embeddable_content) > 8100:
+        embed_tokens = count_tokens(embeddable_content)
+        if embed_tokens > 8100:
             print("  Skipping " + key +
                   " content embedding because it has too many tokens")
-            reference_embed_batch.append(
-                "# " + key + "\n" + (reference[key]['description'] if 'description' in reference[key] else ""))
-            continue
+            if 'documentation' in reference[key] and reference[key]['documentation'] != '':
+                embeddable_content = "# " + key + "\n" + reference[key]['documentation']
+                embed_tokens = count_tokens(embeddable_content)
 
+        if reference_batch_tokens + embed_tokens > 8100:
+            try:
+                response = openai.Embedding.create(
+                    model=EMBEDDING_MODEL, input=reference_embed_batch)
+                data["embedding"].extend(
+                    list(map(lambda data: data['embedding'], response['data'])))
+            except Exception as e:
+                print("Failed to get embedding for api-reference", e)
+                data["embedding"].extend([None] * len(reference_embed_batch))
+
+            reference_embed_batch, reference_batch_tokens = [], 0
+
+        reference_batch_tokens += embed_tokens
         reference_embed_batch.append(embeddable_content)
 
+    # Get the last batch of reference embeddings
     try:
         response = openai.Embedding.create(
             model=EMBEDDING_MODEL, input=reference_embed_batch)
         data["embedding"].extend(
             list(map(lambda data: data['embedding'], response['data'])))
-    except:
-        print("Failed to get embedding for api-refs")
+    except Exception as e:
+        print("Failed to get embedding for api-reference", e)
         data["embedding"].extend([None] * len(reference_embed_batch))
 
     # Build and return the DataFrame
@@ -139,6 +154,6 @@ Generated on {date.today()} from:
 
 ## Embeddings
 
-With those files, {embeddings_dataframe['embedding'].count()} items were found and embedded. The embeddings, along with content and metadata, can be found in `docs-embeddings.json`.""", "build/summary.md")
+With those files, {embeddings_dataframe['title'].count()} items were found and {embeddings_dataframe['embedding'].count()} embeddings were created. The embeddings, along with content and metadata, can be found in `docs-embeddings.json`.""", "build/summary.md")
 
     print("Documentation collection completed")
