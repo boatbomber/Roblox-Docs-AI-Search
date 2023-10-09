@@ -26,7 +26,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python indexer/embedder.py
+          python indexer/main.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -48,5 +48,5 @@ jobs:
           name: "Roblox Documentation Index ${{ steps.release_info.outputs.timestamp }}"
           body: "${{ steps.release_info.outputs.release_body }}"
           tag: "roblox-documentation.${{ steps.release_info.outputs.timestamp }}"
-          artifacts: "build/docs-embeddings.json, build/indexed-files.json, build/docs-source-commit.txt"
+          artifacts: "build/docs-embeddings.json, build/docs-source-commit.txt, build/api-source-commit.txt"
           skipIfReleaseExists: false

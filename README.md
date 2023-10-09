@@ -18,7 +18,7 @@ Then run:
 
 ```bash
 pip install -r indexer/requirements.txt
-python indexer/embedder.py
+python indexer/main.py
 ```
 
 ## Searcher
