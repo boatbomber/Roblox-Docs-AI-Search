@@ -85,24 +85,21 @@ def create_dataframe(documents, reference):
     # Handle the API reference
     reference_embed_batch, reference_batch_tokens = [], 0
     for key in reference:
-        # Turn the ref object into a string
-        content = json.dumps(reference[key])
+        embeddable_content = reference[key]
 
         current_file += 1
         print("[" + str(current_file) + "/" + str(count_files) + "] Generating data for " + key)
 
         data["type"].append("api-reference")
         data["title"].append(key)
-        data["content"].append(content)
+        data["content"].append(embeddable_content)
 
-        embeddable_content = "# " + key + "\n" + content
         embed_tokens = count_tokens(embeddable_content)
         if embed_tokens > 8100:
             print("  Skipping " + key +
                   " content embedding because it has too many tokens")
-            if 'documentation' in reference[key] and reference[key]['documentation'] != '':
-                embeddable_content = "# " + key + "\n" + reference[key]['documentation']
-                embed_tokens = count_tokens(embeddable_content)
+            data["embedding"].append(None)
+            continue
 
         if reference_batch_tokens + embed_tokens > 8100:
             try:
