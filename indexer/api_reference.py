@@ -1,6 +1,6 @@
 import requests  # for fetching the docs
 import re  # for cutting metadata out of doc headers
-from json import dumps as json_dumps # For debug printing
+from json import dumps as json_dumps  # For debug printing
 
 import write
 import config
@@ -75,7 +75,8 @@ def replace_api_identifiers(content, used_identifiers, object, should_mark_used=
                 else:
                     object[key] = ref_obj
             else:
-                replace_api_identifiers(content, used_identifiers, item, key != "keys")
+                replace_api_identifiers(
+                    content, used_identifiers, item, key != "keys")
 
 
 def get_reference():
@@ -118,9 +119,6 @@ def get_reference():
                 continue
             new_obj[prop] = content[key][prop]
 
-        if len(new_obj) == 0:
-            continue
-
         content[key] = new_obj
 
     # Replace identifiers with their object
@@ -128,10 +126,15 @@ def get_reference():
 
     # Build the API reference
     for key in content:
+        if len(content[key]) == 0:
+            continue
         if key in used_identifiers:
+            continue
+        if re.match(r"\.Connect$", key) or re.match(r"\.Wait$", key):
             continue
         api_reference[key] = content[key]
 
+    print("Found " + str(len(api_reference)) + " api references")
     # print(json_dumps(api_reference, indent=2))
 
     return api_reference
