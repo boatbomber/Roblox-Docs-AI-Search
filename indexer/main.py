@@ -139,6 +139,6 @@ Generated on {date.today()} from:
 
 ## Embeddings
 
-With those files, {embeddings_dataframe['embedding'].count()} item were found and embedded. The embeddings, along with content and metadata, can be found in `docs-embeddings.json`.""", "build/summary.md")
+With those files, {embeddings_dataframe['embedding'].count()} items were found and embedded. The embeddings, along with content and metadata, can be found in `docs-embeddings.json`.""", "build/summary.md")
 
     print("Documentation collection completed")
