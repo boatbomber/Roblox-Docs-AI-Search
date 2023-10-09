@@ -1,6 +1,6 @@
 import requests  # for fetching the docs
 import re  # for cutting metadata out of doc headers
-from datetime import date  # for writing the date to the summary file
+from json import dumps as json_dumps # For debug printing
 
 import write
 import config
@@ -46,24 +46,36 @@ def replace_xml_tags(item):
                 replace_xml_tags(item[prop])
 
 
-def replace_api_identifiers(content, used_identifiers, object):
+def replace_api_identifiers(content, used_identifiers, object, should_mark_used=True):
     if isinstance(object, list):
-        for i in range(len(object)):
-            item = object[i]
+        for key in range(len(object)):
+            item = object[key]
             if isinstance(item, str) and is_api_identifier(item):
-                used_identifiers.append(item)
-                object[i] = content[item]
+                if should_mark_used:
+                    used_identifiers.append(item)
+                ref_obj = content[item]
+                if 'documentation' in ref_obj and len(ref_obj) == 1:
+                    # If the ref object only has a documentation, replace the identifier with the documentation
+                    object[key] = ref_obj['documentation']
+                else:
+                    object[key] = ref_obj
             else:
                 replace_api_identifiers(content, used_identifiers, item)
 
     elif isinstance(object, dict):
-        for prop in object:
-            if isinstance(object[prop], str) and is_api_identifier(object[prop]):
-                used_identifiers.append(object[prop])
-                object[prop] = content[object[prop]]
+        for key in object:
+            item = object[key]
+            if isinstance(item, str) and is_api_identifier(item):
+                if should_mark_used:
+                    used_identifiers.append(item)
+                ref_obj = content[item]
+                if 'documentation' in ref_obj and len(ref_obj) == 1:
+                    # If the ref object only has a documentation, replace the identifier with the documentation
+                    object[key] = ref_obj['documentation']
+                else:
+                    object[key] = ref_obj
             else:
-                replace_api_identifiers(
-                    content, used_identifiers, object[prop])
+                replace_api_identifiers(content, used_identifiers, item, key != "keys")
 
 
 def get_reference():
@@ -80,9 +92,20 @@ def get_reference():
     # Replace xml tags with markdown
     replace_xml_tags(content)
 
-    # Remove links and empty properties
+    # Remove links, empty properties, and unhelpful properties
     for key in content:
         content[key].pop('learn_more_link', None)
+
+        # Remove keys when they don't link to anything helpful
+        if 'keys' in content[key]:
+            # Check if keys matches
+            keys = content[key]['keys']
+            if len(keys) == 3 and 'Name' in keys and 'Value' in keys and 'EnumType' in keys:
+                content[key].pop('keys', None)
+
+        # Overloads objects are just links to other objects
+        if 'overloads' in content[key]:
+            content[key].pop('overloads', None)
 
         new_obj = {}
         for prop in content[key]:
@@ -94,6 +117,10 @@ def get_reference():
             elif isinstance(item, dict) and len(item) == 0:
                 continue
             new_obj[prop] = content[key][prop]
+
+        if len(new_obj) == 0:
+            continue
+
         content[key] = new_obj
 
     # Replace identifiers with their object
@@ -104,6 +131,8 @@ def get_reference():
         if key in used_identifiers:
             continue
         api_reference[key] = content[key]
+
+    # print(json_dumps(api_reference, indent=2))
 
     return api_reference
 
