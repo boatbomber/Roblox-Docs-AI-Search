@@ -18,7 +18,7 @@ Then run:
 
 ```bash
 pip install -r indexer/requirements.txt
-python indexer/embedder.py
+python indexer/main.py
 ```
 
 ## Searcher
@@ -31,7 +31,7 @@ Install using wally:
 
 ```toml
 [server-dependencies]
-DocsAISearch = "boatbomber/robloxdocsaisearch@0.1.1"
+DocsAISearch = "boatbomber/robloxdocsaisearch@0.2.0"
 ```
 
 ### Usage
