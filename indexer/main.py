@@ -73,14 +73,14 @@ def create_dataframe(documents, reference):
 
             embed_batch.append(embeddable_content)
 
-        # try:
-        #     response = openai.Embedding.create(
-        #         model=EMBEDDING_MODEL, input=embed_batch)
-        #     data["embedding"].extend(
-        #         list(map(lambda data: data['embedding'], response['data'])))
-        # except:
-        #   print("Failed to get embedding for " + header)
-        data["embedding"].extend([None] * len(embed_batch))
+        try:
+            response = openai.Embedding.create(
+                model=EMBEDDING_MODEL, input=embed_batch)
+            data["embedding"].extend(
+                list(map(lambda data: data['embedding'], response['data'])))
+        except:
+            print("Failed to get embedding for " + metadata["title"])
+            data["embedding"].extend([None] * len(embed_batch))
 
     # Handle the API reference
     reference_embed_batch = []
@@ -105,14 +105,14 @@ def create_dataframe(documents, reference):
 
         reference_embed_batch.append(embeddable_content)
 
-    # try:
-    #     response = openai.Embedding.create(
-    #         model=EMBEDDING_MODEL, input=reference_embed_batch)
-    #     data["embedding"].extend(
-    #         list(map(lambda data: data['embedding'], response['data'])))
-    # except:
-    #     print("Failed to get embedding for " + key)
-    data["embedding"].extend([None] * len(reference_embed_batch))
+    try:
+        response = openai.Embedding.create(
+            model=EMBEDDING_MODEL, input=reference_embed_batch)
+        data["embedding"].extend(
+            list(map(lambda data: data['embedding'], response['data'])))
+    except:
+        print("Failed to get embedding for api-refs")
+        data["embedding"].extend([None] * len(reference_embed_batch))
 
     # Build and return the DataFrame
     return pd.DataFrame(data)
