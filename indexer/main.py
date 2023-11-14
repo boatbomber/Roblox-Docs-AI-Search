@@ -17,133 +17,133 @@ openai.api_key = config.OPENAI_API_KEY
 
 
 def count_tokens(text: str, model: str = EMBEDDING_MODEL) -> int:
-    """Return the number of tokens in a string."""
-    encoding = tiktoken.encoding_for_model(model)
-    return len(encoding.encode(text))
+	"""Return the number of tokens in a string."""
+	encoding = tiktoken.encoding_for_model(model)
+	return len(encoding.encode(text))
 
 
 def create_dataframe(documents, reference):
-    data = {
-        'type': [],
-        'title': [],
-        'content': [],
-        'embedding': [],
-    }
+	data = {
+		'type': [],
+		'title': [],
+		'content': [],
+		'embedding': [],
+	}
 
-    count_files = len(documents) + len(reference)
-    current_file = 0
+	count_files = len(documents) + len(reference)
+	current_file = 0
 
-    # Handle the documents
-    for filepath in documents:
-        document = documents[filepath]
+	# Handle the documents
+	for filepath in documents:
+		document = documents[filepath]
 
-        current_file += 1
+		current_file += 1
 
-        # First, we get the metadata
-        metadata = creator_docs.get_document_metadata(
-            filepath=filepath, document=document)
+		# First, we get the metadata
+		metadata = creator_docs.get_document_metadata(
+			filepath=filepath, document=document)
 
-        # Then, we process it for ingestion
-        content = creator_docs.prepare_document_for_ingest(document=document)
+		# Then, we process it for ingestion
+		content = creator_docs.prepare_document_for_ingest(document=document)
 
-        # Then, we break it into sections using ## headers, so that we get a dict of header content -> section content
-        sections = creator_docs.get_document_sections(content=content, metadata=metadata)
+		# Then, we break it into sections using ## headers, so that we get a dict of header content -> section content
+		sections = creator_docs.get_document_sections(content=content, metadata=metadata)
 
-        print("[" + str(current_file) + "/" + str(count_files) + "] Generating data for the " +
-              str(len(sections)) + " sections in " + metadata["title"])
+		print("[" + str(current_file) + "/" + str(count_files) + "] Generating data for the " +
+			  str(len(sections)) + " sections in " + metadata["title"])
 
-        # Then we get the embeddings for each section
-        embed_batch = []
-        for header in sections:
-            section_content = sections[header]
+		# Then we get the embeddings for each section
+		embed_batch = []
+		for header in sections:
+			section_content = sections[header]
 
-            data["type"].append("creator-docs")
-            data["title"].append(metadata["title"] + " / " + header)
-            data["content"].append(section_content)
+			data["type"].append("creator-docs")
+			data["title"].append(metadata["title"] + " / " + header)
+			data["content"].append(section_content)
 
-            embeddable_content = "# " + \
-                metadata["title"] + "\n## " + metadata["description"] + \
-                "\n### " + header + "\n" + section_content
-            if count_tokens(embeddable_content) > 8100:
-                print("  Skipping " + header +
-                      " content embedding because it has too many tokens")
-                embed_batch.append(
-                    "# " + metadata["title"] + "\n## " + metadata["description"] + "\n### " + header)
-                continue
+			embeddable_content = "# " + \
+				metadata["title"] + "\n## " + metadata["description"] + \
+				"\n### " + header + "\n" + section_content
+			if count_tokens(embeddable_content) > 8100:
+				print("  Skipping " + header +
+					  " content embedding because it has too many tokens")
+				embed_batch.append(
+					"# " + metadata["title"] + "\n## " + metadata["description"] + "\n### " + header)
+				continue
 
-            embed_batch.append(embeddable_content)
+			embed_batch.append(embeddable_content)
 
-        try:
-            response = openai.Embedding.create(
-                model=EMBEDDING_MODEL, input=embed_batch)
-            data["embedding"].extend(
-                list(map(lambda data: data['embedding'], response['data'])))
-        except Exception as e:
-            print("Failed to get embedding for " + metadata["title"], e)
-            data["embedding"].extend([None] * len(embed_batch))
+		try:
+			response = openai.Embedding.create(
+				model=EMBEDDING_MODEL, input=embed_batch)
+			data["embedding"].extend(
+				list(map(lambda data: data['embedding'], response['data'])))
+		except Exception as e:
+			print("Failed to get embedding for " + metadata["title"], e)
+			data["embedding"].extend([None] * len(embed_batch))
 
-    # Handle the API reference
-    reference_embed_batch, reference_batch_tokens = [], 0
-    for key in reference:
-        embeddable_content = reference[key]
+	# Handle the API reference
+	reference_embed_batch, reference_batch_tokens = [], 0
+	for key in reference:
+		embeddable_content = reference[key]
 
-        current_file += 1
-        print("[" + str(current_file) + "/" + str(count_files) + "] Generating data for " + key)
+		current_file += 1
+		print("[" + str(current_file) + "/" + str(count_files) + "] Generating data for " + key)
 
-        data["type"].append("api-reference")
-        data["title"].append(key)
-        data["content"].append(embeddable_content)
+		data["type"].append("api-reference")
+		data["title"].append(key)
+		data["content"].append(embeddable_content)
 
-        embed_tokens = count_tokens(embeddable_content)
-        if embed_tokens > 8100:
-            print("  Skipping " + key +
-                  " content embedding because it has too many tokens")
-            data["embedding"].append(None)
-            continue
+		embed_tokens = count_tokens(embeddable_content)
+		if embed_tokens > 8100:
+			print("  Skipping " + key +
+				  " content embedding because it has too many tokens")
+			data["embedding"].append(None)
+			continue
 
-        if reference_batch_tokens + embed_tokens > 8100:
-            try:
-                response = openai.Embedding.create(
-                    model=EMBEDDING_MODEL, input=reference_embed_batch)
-                data["embedding"].extend(
-                    list(map(lambda data: data['embedding'], response['data'])))
-            except Exception as e:
-                print("Failed to get embedding for api-reference", e)
-                data["embedding"].extend([None] * len(reference_embed_batch))
+		if reference_batch_tokens + embed_tokens > 8100:
+			try:
+				response = openai.Embedding.create(
+					model=EMBEDDING_MODEL, input=reference_embed_batch)
+				data["embedding"].extend(
+					list(map(lambda data: data['embedding'], response['data'])))
+			except Exception as e:
+				print("Failed to get embedding for api-reference", e)
+				data["embedding"].extend([None] * len(reference_embed_batch))
 
-            reference_embed_batch, reference_batch_tokens = [], 0
+			reference_embed_batch, reference_batch_tokens = [], 0
 
-        reference_batch_tokens += embed_tokens
-        reference_embed_batch.append(embeddable_content)
+		reference_batch_tokens += embed_tokens
+		reference_embed_batch.append(embeddable_content)
 
-    # Get the last batch of reference embeddings
-    try:
-        response = openai.Embedding.create(
-            model=EMBEDDING_MODEL, input=reference_embed_batch)
-        data["embedding"].extend(
-            list(map(lambda data: data['embedding'], response['data'])))
-    except Exception as e:
-        print("Failed to get embedding for api-reference", e)
-        data["embedding"].extend([None] * len(reference_embed_batch))
+	# Get the last batch of reference embeddings
+	try:
+		response = openai.Embedding.create(
+			model=EMBEDDING_MODEL, input=reference_embed_batch)
+		data["embedding"].extend(
+			list(map(lambda data: data['embedding'], response['data'])))
+	except Exception as e:
+		print("Failed to get embedding for api-reference", e)
+		data["embedding"].extend([None] * len(reference_embed_batch))
 
-    # Build and return the DataFrame
-    return pd.DataFrame(data)
+	# Build and return the DataFrame
+	return pd.DataFrame(data)
 
 
 if __name__ == "__main__":
-    if not os.path.exists('build'):
-        os.makedirs('build')
+	if not os.path.exists('build'):
+		os.makedirs('build')
 
-    documents = creator_docs.get_documents()
-    reference = api_reference.get_reference()
+	documents = creator_docs.get_documents()
+	reference = api_reference.get_reference()
 
-    embeddings_dataframe = create_dataframe(
-        documents=documents, reference=reference)
+	embeddings_dataframe = create_dataframe(
+		documents=documents, reference=reference)
 
-    embeddings_dataframe.to_json(
-        "build/docs-embeddings.json", orient="records")
+	embeddings_dataframe.to_json(
+		"build/docs-embeddings.json", orient="records")
 
-    write.write_text(f"""# Roblox Documentation Index
+	write.write_text(f"""# Roblox Documentation Index
 
 Generated on {date.today()} from:
 - https://github.com/Roblox/creator-docs @ {creator_docs.get_sha()[:7]}
@@ -153,4 +153,4 @@ Generated on {date.today()} from:
 
 With those files, {embeddings_dataframe['title'].count()} items were found and {embeddings_dataframe['embedding'].count()} embeddings were created. The embeddings, along with content and metadata, can be found in `docs-embeddings.json`.""", "build/summary.md")
 
-    print("Documentation collection completed")
+	print("Documentation collection completed")

@@ -15,5 +15,9 @@ GH_REQ_HEADERS = {
 }
 
 ALLOWLISTED_DOCUMENT_PATHS = {
-	'en-us/', # All english documentation
+	'creator-docs-main/content/en-us/', # All english documentation
+}
+ALLOWLISTED_DOCUMENT_FILETYPES = {
+	'.md', # Tutorials
+	# '.yaml', # API Reference
 }
