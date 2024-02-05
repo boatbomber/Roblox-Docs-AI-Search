@@ -17,7 +17,7 @@ export type SourceDocument = {
 	type: string,
 	title: string,
 	content: string,
-	embeddings: { Vector },
+	embedding: Vector?,
 }
 
 export type Document = {
@@ -34,7 +34,7 @@ export type NeighborInfo = {
 local DocsAISearch = {}
 DocsAISearch.__index = DocsAISearch
 
-DocsAISearch._supportedIndexVersion = "v0.3"
+DocsAISearch._supportedIndexVersion = "v0.2"
 
 function DocsAISearch.new(config: Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
@@ -84,9 +84,8 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 			["Authorization"] = "Bearer " .. self._OpenAIKey,
 		},
 		Body = HttpService:JSONEncode({
-			model = "text-embedding-3-small",
+			model = "text-embedding-ada-002",
 			input = text,
-			dimensions = self._embeddingDimensions,
 		}),
 	})
 
@@ -133,17 +132,10 @@ function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { Neigh
 
 	-- For our dataset size, a linear search is fine. If we add more documents, we can use ANN search algorithms.
 	for _, document: SourceDocument in ipairs(self.Documents) do
-		if not document.embeddings then
+		if not document.embedding then
 			continue
 		end
-
-		local score = -math.huge
-		for _, embedding: Vector in ipairs(document.embeddings) do
-			local newScore = self:_cosineSimilarityUnit(embedding, vector)
-			if newScore > score then
-				score = newScore
-			end
-		end
+		local score = self:_cosineSimilarityUnit(document.embedding, vector)
 
 		if score :: number >= self.ScoreThreshold then
 			pushItem(document, score)
@@ -177,7 +169,7 @@ function DocsAISearch:Load()
 	self._IsLoading = true
 
 	local releasesSuccess, releasesResponse = pcall(HttpService.RequestAsync, HttpService, {
-		Url = "https://api.github.com/repos/" .. self._IndexSourceRepo .. "/releases?per_page=10",
+		Url = "https://api.github.com/repos/" .. (self._IndexSourceRepo :: string) .. "/releases?per_page=10",
 		Method = "GET",
 		Headers = {
 			Authorization = "bearer " .. self._GithubKey,
@@ -215,7 +207,7 @@ function DocsAISearch:Load()
 		local releaseVersion = string.match(release.body, "Index Version: (v[%d%.]+)") or "v0.2"
 		if releaseVersion == self._supportedIndexVersion then
 			for _, asset in release.assets do
-				if string.find(asset.name, "index.json") then
+				if string.find(asset.name, "docs-embeddings.json") then
 					indexUrl = asset.browser_download_url
 					break
 				end
@@ -266,7 +258,6 @@ function DocsAISearch:Load()
 	end
 
 	self.Documents = decodeResponse
-	self._embeddingDimensions = #decodeResponse[1].embeddings[1]
 	self.IsLoaded = true
 	self._IsLoading = false
 end
