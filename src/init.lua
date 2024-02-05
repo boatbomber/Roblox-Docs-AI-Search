@@ -17,7 +17,7 @@ export type SourceDocument = {
 	type: string,
 	title: string,
 	content: string,
-	embedding: Vector?,
+	embeddings: { Vector },
 }
 
 export type Document = {
@@ -25,7 +25,6 @@ export type Document = {
 	title: string,
 	content: string,
 }
-
 
 export type NeighborInfo = {
 	score: number,
@@ -39,14 +38,21 @@ function DocsAISearch.new(config: Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
 	assert(type(config.OpenAIKey) == "string", "DocsAISearch.new config['OpenAIKey'] must be a string")
-	assert(config.ScoreThreshold == nil or type(config.ScoreThreshold) == "number", "DocsAISearch.new config['ScoreThreshold'] must be a number or nil")
-	assert(config.IndexSourceUrl == nil or type(config.IndexSourceUrl) == "string", "DocsAISearch.new config['IndexSourceUrl'] must be a string or nil")
+	assert(
+		config.ScoreThreshold == nil or type(config.ScoreThreshold) == "number",
+		"DocsAISearch.new config['ScoreThreshold'] must be a number or nil"
+	)
+	assert(
+		config.IndexSourceUrl == nil or type(config.IndexSourceUrl) == "string",
+		"DocsAISearch.new config['IndexSourceUrl'] must be a string or nil"
+	)
 
 	local self = setmetatable({
 		Documents = {},
 		IsLoaded = false,
 		ScoreThreshold = config.ScoreThreshold or 0.75,
-		_IndexSourceUrl = config.IndexSourceUrl or "https://github.com/boatbomber/Roblox-Docs-AI-Search/releases/latest/download/docs-embeddings.json",
+		_IndexSourceUrl = config.IndexSourceUrl
+			or "https://github.com/boatbomber/Roblox-Docs-AI-Search/releases/latest/download/docs-list.json",
 		_GithubKey = config.GithubKey,
 		_OpenAIKey = config.OpenAIKey,
 		_IsLoading = false,
@@ -65,7 +71,7 @@ function DocsAISearch:_cosineSimilarityUnit(a: Vector, b: Vector): number
 	return dot
 end
 
-function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: number, embedding: Vector?}?
+function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: number, embedding: Vector? }?
 	assert(type(text) == "string", "DocumentationIndex:_requestVectorEmbedding must be called with a string")
 
 	local success, response = pcall(HttpService.RequestAsync, HttpService, {
@@ -76,8 +82,9 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 			["Authorization"] = "Bearer " .. self._OpenAIKey,
 		},
 		Body = HttpService:JSONEncode({
-			model = "text-embedding-ada-002",
+			model = "text-embedding-3-small",
 			input = text,
+			dimensions = self._embeddingDimensions,
 		}),
 	})
 
@@ -107,13 +114,14 @@ function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { Neigh
 	local nearestNeighbors: { NeighborInfo } = table.create(k + 1)
 
 	local function pushItem(item: SourceDocument, score: number)
-		table.insert(nearestNeighbors, {score = score, item = item})
+		table.insert(nearestNeighbors, { score = score, item = item })
 		local index = #nearestNeighbors
 
 		while index > 1 do
 			local parentIndex = math.floor(index / 2)
 			if nearestNeighbors[index].score < nearestNeighbors[parentIndex].score then
-				nearestNeighbors[index], nearestNeighbors[parentIndex] = nearestNeighbors[parentIndex], nearestNeighbors[index]
+				nearestNeighbors[index], nearestNeighbors[parentIndex] =
+					nearestNeighbors[parentIndex], nearestNeighbors[index]
 				index = parentIndex
 			else
 				break
@@ -123,10 +131,17 @@ function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { Neigh
 
 	-- For our dataset size, a linear search is fine. If we add more documents, we can use ANN search algorithms.
 	for _, document: SourceDocument in ipairs(self.Documents) do
-		if not document.embedding then
+		if not document.embeddings then
 			continue
 		end
-		local score = self:_cosineSimilarityUnit(document.embedding, vector)
+
+		local score = -math.huge
+		for _, embedding: Vector in ipairs(document.embeddings) do
+			local newScore = self:_cosineSimilarityUnit(embedding, vector)
+			if newScore > score then
+				score = newScore
+			end
+		end
 
 		if score :: number >= self.ScoreThreshold then
 			pushItem(document, score)
@@ -173,7 +188,12 @@ function DocsAISearch:Load()
 	end
 
 	if loadResponse.StatusCode ~= 200 then
-		warn("GitHub release download responded with error code:", loadResponse.StatusCode, loadResponse.StatusMessage, loadResponse.Body)
+		warn(
+			"GitHub release download responded with error code:",
+			loadResponse.StatusCode,
+			loadResponse.StatusMessage,
+			loadResponse.Body
+		)
 		return
 	end
 
@@ -184,11 +204,15 @@ function DocsAISearch:Load()
 	end
 
 	self.Documents = decodeResponse
+	self._embeddingDimensions = #decodeResponse[1].embeddings[1]
 	self.IsLoaded = true
 	self._IsLoading = false
 end
 
-function DocsAISearch:Query(query: string, count: number?): { token_usage: number, result: { error: string?, documents: { Document }?} }
+function DocsAISearch:Query(
+	query: string,
+	count: number?
+): { token_usage: number, result: { error: string?, documents: { Document }? } }
 	assert(type(query) == "string", "DocsAISearch:Query query must be a string")
 	assert(count == nil or type(count) == "number", "DocsAISearch:Query count must be a number or nil")
 
