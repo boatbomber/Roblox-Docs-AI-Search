@@ -207,7 +207,7 @@ function DocsAISearch:Load()
 		local releaseVersion = string.match(release.body, "Index Version: (v[%d%.]+)") or "v0.2"
 		if releaseVersion == self._supportedIndexVersion then
 			for _, asset in release.assets do
-				if string.find(asset.name, "docs-embeddings.json") then
+				if string.find(asset.name, "docs-embeddings.json", 1, true) then
 					indexUrl = asset.browser_download_url
 					break
 				end
@@ -220,7 +220,7 @@ function DocsAISearch:Load()
 	end
 
 	if not indexUrl then
-		warn("Failed to find index.json in GitHub releases")
+		warn("Failed to find docs-embeddings.json in GitHub releases")
 		self._IsLoading = false
 		return
 	end
