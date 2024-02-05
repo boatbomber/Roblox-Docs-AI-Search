@@ -8,7 +8,7 @@ export type Config = {
 	GithubKey: string,
 	OpenAIKey: string,
 	ScoreThreshold: number?,
-	IndexSourceUrl: string?,
+	IndexSourceRepo: string?,
 }
 
 export type Vector = { number }
@@ -34,6 +34,8 @@ export type NeighborInfo = {
 local DocsAISearch = {}
 DocsAISearch.__index = DocsAISearch
 
+DocsAISearch._supportedIndexVersion = "v0.3"
+
 function DocsAISearch.new(config: Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
@@ -43,16 +45,16 @@ function DocsAISearch.new(config: Config)
 		"DocsAISearch.new config['ScoreThreshold'] must be a number or nil"
 	)
 	assert(
-		config.IndexSourceUrl == nil or type(config.IndexSourceUrl) == "string",
-		"DocsAISearch.new config['IndexSourceUrl'] must be a string or nil"
+		config.IndexSourceRepo == nil
+			or (type(config.IndexSourceRepo) == "string" and string.find(config.IndexSourceRepo, "/") ~= nil),
+		"DocsAISearch.new config['IndexSourceUrl'] must be a string (in 'owner/repo' format) or nil"
 	)
 
 	local self = setmetatable({
 		Documents = {},
 		IsLoaded = false,
 		ScoreThreshold = config.ScoreThreshold or 0.75,
-		_IndexSourceUrl = config.IndexSourceUrl
-			or "https://github.com/boatbomber/Roblox-Docs-AI-Search/releases/latest/download/docs-list.json",
+		_IndexSourceRepo = config.IndexSourceRepo or "boatbomber/Roblox-Docs-AI-Search",
 		_GithubKey = config.GithubKey,
 		_OpenAIKey = config.OpenAIKey,
 		_IsLoading = false,
@@ -174,8 +176,65 @@ function DocsAISearch:Load()
 
 	self._IsLoading = true
 
+	local releasesSuccess, releasesResponse = pcall(HttpService.RequestAsync, HttpService, {
+		Url = "https://api.github.com/repos/" .. self._IndexSourceRepo .. "/releases?per_page=10",
+		Method = "GET",
+		Headers = {
+			Authorization = "bearer " .. self._GithubKey,
+		},
+	})
+
+	if not releasesSuccess then
+		warn("Failed to get releases from GitHub:", releasesResponse)
+		self._IsLoading = false
+		return
+	end
+
+	if releasesResponse.StatusCode ~= 200 then
+		warn(
+			"GitHub releases info responded with error code:",
+			releasesResponse.StatusCode,
+			releasesResponse.StatusMessage,
+			releasesResponse.Body
+		)
+		self._IsLoading = false
+		return
+	end
+
+	local releasesDecodeSuccess, releasesDecodeResponse =
+		pcall(HttpService.JSONDecode, HttpService, releasesResponse.Body)
+
+	if not releasesDecodeSuccess then
+		warn("Failed to decode GitHub releases response body:", releasesDecodeResponse, releasesResponse.Body)
+		self._IsLoading = false
+		return
+	end
+
+	local indexUrl = nil
+	for _, release in releasesDecodeResponse do
+		local releaseVersion = string.match(release.body, "Index Version: (v[%d%.]+)") or "v0.2"
+		if releaseVersion == self._supportedIndexVersion then
+			for _, asset in release.assets do
+				if string.find(asset.name, "index.json") then
+					indexUrl = asset.browser_download_url
+					break
+				end
+			end
+
+			if indexUrl then
+				break
+			end
+		end
+	end
+
+	if not indexUrl then
+		warn("Failed to find index.json in GitHub releases")
+		self._IsLoading = false
+		return
+	end
+
 	local loadSuccess, loadResponse = pcall(HttpService.RequestAsync, HttpService, {
-		Url = self._IndexSourceUrl,
+		Url = indexUrl,
 		Method = "GET",
 		Headers = {
 			Authorization = "bearer " .. self._GithubKey,
@@ -184,22 +243,25 @@ function DocsAISearch:Load()
 
 	if not loadSuccess then
 		warn("Failed to load index:", loadResponse)
+		self._IsLoading = false
 		return
 	end
 
 	if loadResponse.StatusCode ~= 200 then
 		warn(
-			"GitHub release download responded with error code:",
+			"GitHub index.json download responded with error code:",
 			loadResponse.StatusCode,
 			loadResponse.StatusMessage,
 			loadResponse.Body
 		)
+		self._IsLoading = false
 		return
 	end
 
 	local decodeSuccess, decodeResponse = pcall(HttpService.JSONDecode, HttpService, loadResponse.Body)
 	if not decodeSuccess then
 		warn("Failed to decode GitHub release download response body:", decodeResponse, loadResponse.Body)
+		self._IsLoading = false
 		return
 	end
 

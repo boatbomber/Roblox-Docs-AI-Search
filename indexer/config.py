@@ -6,6 +6,8 @@ EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 640
 SUMMARY_MODEL = "gpt-4-turbo-preview"
 
+INDEX_VERSION = "v0.3"
+
 # GitHub API token
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 

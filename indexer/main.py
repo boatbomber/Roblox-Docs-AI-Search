@@ -118,7 +118,6 @@ def create_docs_list(documents, reference):
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)
-            json.dump(docs_list, open("build/docs-list.json", "w"))
         except Exception as e:
             print("  Failed to get embedding for " + metadata["title"], e)
 
@@ -146,7 +145,6 @@ def create_docs_list(documents, reference):
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)
-            json.dump(docs_list, open("build/docs-list.json", "w"))
         except Exception as e:
             print("  Failed to get embedding", e)
 
@@ -163,7 +161,7 @@ if __name__ == "__main__":
     docs_list = create_docs_list(
         documents=documents, reference=reference)
 
-    json.dump(docs_list, open("build/docs-list.json", "w"))
+    json.dump(docs_list, open("build/index.json", "w"))
 
     write.write_text(f"""# Roblox Documentation Index
 
@@ -172,9 +170,10 @@ Generated on {date.today()} from:
 - https://github.com/MaximumADHD/Roblox-Client-Tracker/tree/roblox/api-docs @ {api_reference.get_sha()[:7]}
 - Embedding Model: {config.EMBEDDING_MODEL}, Embedding Dimensions: {config.EMBEDDING_DIMENSIONS}
 - Summary Model: {config.SUMMARY_MODEL}
+- Index Version: {config.INDEX_VERSION}
 
 ## Embeddings
 
-With those files, {len(documents) + len(reference)} items were found, {len(docs_list)} were used, and {sum([len(item['embeddings']) for item in docs_list])} embeddings were created for them. The embeddings, along with content and metadata, can be found in `docs-list.json`.""", "build/summary.md")
+With those files, {len(documents) + len(reference)} items were found, {len(docs_list)} were used, and {sum([len(item['embeddings']) for item in docs_list])} embeddings were created for them. The embeddings, along with content and metadata, can be found in `index.json`.""", "build/summary.md")
 
     print("Documentation collection completed")

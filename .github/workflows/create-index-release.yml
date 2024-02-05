@@ -48,5 +48,5 @@ jobs:
           name: "Roblox Documentation Index ${{ steps.release_info.outputs.timestamp }}"
           body: "${{ steps.release_info.outputs.release_body }}"
           tag: "roblox-documentation.${{ steps.release_info.outputs.timestamp }}"
-          artifacts: "build/docs-embeddings.json, build/docs-source-commit.txt, build/api-source-commit.txt"
+          artifacts: "build/index.json, build/docs-source-commit.txt, build/api-source-commit.txt"
           skipIfReleaseExists: false
