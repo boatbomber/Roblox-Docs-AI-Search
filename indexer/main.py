@@ -65,6 +65,7 @@ def create_docs_list(documents, reference):
 
         # Then, we process it for ingestion
         content = creator_docs.prepare_document_for_ingest(document=document)
+        lower_content = content.lower()
 
         print("  Prepped for ingest")
 
@@ -84,16 +85,17 @@ def create_docs_list(documents, reference):
         # Then we get the embeddings for the document, each section, and summaries
         embed_batch = []
 
-        if count_tokens(content) < 8100:
-            embed_batch.append(content.lower())
+        if count_tokens(lower_content) < 8100:
+            embed_batch.append(lower_content)
         else:
             print("  Skipping document embedding because it has too many tokens")
 
         try:
             summary = get_summary(content)
+            lower_summary = summary.lower()
             print("  Generated summary")
-            if count_tokens(summary) < 8100:
-                embed_batch.append(summary.lower())
+            if count_tokens(lower_summary) < 8100:
+                embed_batch.append(lower_summary)
             else:
                 print("  Skipping summary embedding because it has too many tokens")
 
@@ -106,12 +108,13 @@ def create_docs_list(documents, reference):
             embeddable_content = "# " + \
                 metadata["title"] + "\n## " + metadata["description"] + \
                 "\n### " + header + "\n" + section_content
-            if count_tokens(embeddable_content) > 8100:
+            lower_embeddable_content = embeddable_content.lower()
+            if count_tokens(lower_embeddable_content) > 8100:
                 print("  Skipping " + header +
                       " content embedding because it has too many tokens")
                 continue
 
-            embed_batch.append(embeddable_content.lower())
+            embed_batch.append(lower_embeddable_content)
 
         try:
             embeddings = get_embedding(embed_batch)
@@ -128,6 +131,7 @@ def create_docs_list(documents, reference):
               str(count_files) + "] Processing " + key)
 
         embeddable_content = reference[key]
+        lower_embeddable_content = embeddable_content.lower()
 
         entry = {
             "type": "api-reference",
@@ -136,12 +140,12 @@ def create_docs_list(documents, reference):
             "embeddings": [],
         }
 
-        if count_tokens(embeddable_content) > 8100:
+        if count_tokens(lower_embeddable_content) > 8100:
             print("  Skipping content embedding because it has too many tokens")
             continue
 
         try:
-            embeddings = get_embedding([embeddable_content.lower()])
+            embeddings = get_embedding([lower_embeddable_content])
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)
