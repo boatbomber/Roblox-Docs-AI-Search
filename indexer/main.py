@@ -85,7 +85,7 @@ def create_docs_list(documents, reference):
         embed_batch = []
 
         if count_tokens(content) < 8100:
-            embed_batch.append(content)
+            embed_batch.append(content.lower())
         else:
             print("  Skipping document embedding because it has too many tokens")
 
@@ -93,7 +93,7 @@ def create_docs_list(documents, reference):
             summary = get_summary(content)
             print("  Generated summary")
             if count_tokens(summary) < 8100:
-                embed_batch.append(summary)
+                embed_batch.append(summary.lower())
             else:
                 print("  Skipping summary embedding because it has too many tokens")
 
@@ -111,7 +111,7 @@ def create_docs_list(documents, reference):
                       " content embedding because it has too many tokens")
                 continue
 
-            embed_batch.append(embeddable_content)
+            embed_batch.append(embeddable_content.lower())
 
         try:
             embeddings = get_embedding(embed_batch)
@@ -141,7 +141,7 @@ def create_docs_list(documents, reference):
             continue
 
         try:
-            embeddings = get_embedding([embeddable_content])
+            embeddings = get_embedding([embeddable_content.lower()])
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)

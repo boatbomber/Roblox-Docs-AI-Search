@@ -7,7 +7,7 @@ local HttpService = game:GetService("HttpService")
 export type Config = {
 	GithubKey: string,
 	OpenAIKey: string,
-	ScoreThreshold: number?,
+	RelevanceThreshold: number?,
 	IndexSourceRepo: string?,
 }
 
@@ -24,10 +24,11 @@ export type Document = {
 	type: string,
 	title: string,
 	content: string,
+	relevance: number,
 }
 
 export type NeighborInfo = {
-	score: number,
+	relevance: number,
 	item: SourceDocument,
 }
 
@@ -41,8 +42,8 @@ function DocsAISearch.new(config: Config)
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
 	assert(type(config.OpenAIKey) == "string", "DocsAISearch.new config['OpenAIKey'] must be a string")
 	assert(
-		config.ScoreThreshold == nil or type(config.ScoreThreshold) == "number",
-		"DocsAISearch.new config['ScoreThreshold'] must be a number or nil"
+		config.RelevanceThreshold == nil or type(config.RelevanceThreshold) == "number",
+		"DocsAISearch.new config['RelevanceThreshold'] must be a number or nil"
 	)
 	assert(
 		config.IndexSourceRepo == nil
@@ -53,7 +54,7 @@ function DocsAISearch.new(config: Config)
 	local self = setmetatable({
 		Documents = {},
 		IsLoaded = false,
-		ScoreThreshold = config.ScoreThreshold or 0.75,
+		RelevanceThreshold = config.RelevanceThreshold or 0.4,
 		_IndexSourceRepo = config.IndexSourceRepo or "boatbomber/Roblox-Docs-AI-Search",
 		_GithubKey = config.GithubKey,
 		_OpenAIKey = config.OpenAIKey,
@@ -63,14 +64,16 @@ function DocsAISearch.new(config: Config)
 	return self
 end
 
-function DocsAISearch:_cosineSimilarityUnit(a: Vector, b: Vector): number
+function DocsAISearch:_cosineSimilarityUnit(queryVector: Vector, comparisons: { Vector }): number
 	-- Because the vectors are unit vectors, the dot product is the cosine similarity
 	-- since magnitude is 1 for both vectors
-	local dot = 0
-	for i, ai in a do
-		dot += ai * b[i]
+	local dots = table.create(#comparisons, 0)
+	for comparisonIndex, comparisonVector in comparisons do
+		for componentIndex, queryComponent in queryVector do
+			dots[comparisonIndex] += queryComponent * comparisonVector[componentIndex]
+		end
 	end
-	return dot
+	return math.max(table.unpack(dots))
 end
 
 function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: number, embedding: Vector? }?
@@ -115,49 +118,47 @@ end
 function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { NeighborInfo }
 	local nearestNeighbors: { NeighborInfo } = table.create(k + 1)
 
-	local function pushItem(item: SourceDocument, score: number)
-		table.insert(nearestNeighbors, { score = score, item = item })
-		local index = #nearestNeighbors
-
-		while index > 1 do
-			local parentIndex = math.floor(index / 2)
-			if nearestNeighbors[index].score < nearestNeighbors[parentIndex].score then
-				nearestNeighbors[index], nearestNeighbors[parentIndex] =
-					nearestNeighbors[parentIndex], nearestNeighbors[index]
-				index = parentIndex
-			else
-				break
-			end
-		end
-	end
-
-	-- For our dataset size, a linear search is fine. If we add more documents, we can use ANN search algorithms.
-	for _, document: SourceDocument in ipairs(self.Documents) do
-		if not document.embeddings then
+	-- For our dataset size, a linear search is acceptable. If we add more documents, we can use ANN search algorithms.
+	local worstRelevance, count = 1, 0
+	for _, document: SourceDocument in self.Documents do
+		local relevance: number = self:_cosineSimilarityUnit(vector, document.embeddings)
+		if relevance < self.RelevanceThreshold then
+			-- Drop results below threshold
 			continue
 		end
 
-		local score = -math.huge
-		for _, embedding: Vector in ipairs(document.embeddings) do
-			local newScore = self:_cosineSimilarityUnit(embedding, vector)
-			if newScore > score then
-				score = newScore
+		if count == 0 then
+			-- First pushed item
+			nearestNeighbors[1] = { relevance = relevance, item = document }
+			worstRelevance = relevance
+			count = 1
+			continue
+		end
+
+		if count == k and relevance < worstRelevance then
+			-- We already have k items and this one is worse than all of them
+			continue
+		end
+
+		-- Find the correct insert spot
+		for index, neighbor in nearestNeighbors do
+			if neighbor.relevance < relevance then
+				table.insert(nearestNeighbors, index, { relevance = relevance, item = document })
+				break
 			end
 		end
 
-		if score :: number >= self.ScoreThreshold then
-			pushItem(document, score)
-
-			if #nearestNeighbors > k then
-				table.remove(nearestNeighbors, 1) -- Remove the smallest (min) score item
-			end
+		-- Remove the worst item if we have too many
+		if count == k then
+			nearestNeighbors[#nearestNeighbors] = nil
+		else
+			count += 1
 		end
+
+		-- Update the worst relevance
+		worstRelevance = nearestNeighbors[#nearestNeighbors].relevance
 	end
 
-	-- Sort the top K neighbors by score
-	table.sort(nearestNeighbors, function(a, b)
-		return a.score > b.score
-	end)
 	return nearestNeighbors
 end
 
@@ -177,7 +178,7 @@ function DocsAISearch:Load()
 	self._IsLoading = true
 
 	local releasesSuccess, releasesResponse = pcall(HttpService.RequestAsync, HttpService, {
-		Url = "https://api.github.com/repos/" .. self._IndexSourceRepo .. "/releases?per_page=10",
+		Url = "https://api.github.com/repos/" .. (self._IndexSourceRepo :: string) .. "/releases?per_page=10",
 		Method = "GET",
 		Headers = {
 			Authorization = "bearer " .. self._GithubKey,
@@ -283,7 +284,7 @@ function DocsAISearch:Query(
 		self:Load()
 	end
 
-	local queryEmbedding = self:_requestVectorEmbedding(query)
+	local queryEmbedding = self:_requestVectorEmbedding(string.lower(query))
 	if not queryEmbedding then
 		return {
 			token_usage = 0,
@@ -311,6 +312,7 @@ function DocsAISearch:Query(
 			type = neighbor.item.type or "",
 			title = neighbor.item.title or "",
 			content = neighbor.item.content or "",
+			relevance = neighbor.relevance,
 		}
 	end
 

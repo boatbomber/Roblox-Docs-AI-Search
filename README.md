@@ -31,7 +31,7 @@ Install using wally:
 
 ```toml
 [server-dependencies]
-DocsAISearch = "boatbomber/robloxdocsaisearch@0.3.1"
+DocsAISearch = "boatbomber/robloxdocsaisearch@0.3.2"
 ```
 
 ### Usage
@@ -40,7 +40,7 @@ DocsAISearch = "boatbomber/robloxdocsaisearch@0.3.1"
 local DocsAISearch = require(script.DocsAISearch).new({
 	OpenAIKey = Secrets.OpenAI,
 	GithubKey = Secrets.Github,
-	ScoreThreshold = 0.75,
+	RelevanceThreshold = 0.3,
 })
 
 -- Optionally, preload via DocsAISearch:Load(), otherwise it'll load the index upon first query
