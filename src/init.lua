@@ -215,7 +215,7 @@ function DocsAISearch:Load()
 		local releaseVersion = string.match(release.body, "Index Version: (v[%d%.]+)") or "v0.2"
 		if releaseVersion == self._supportedIndexVersion then
 			for _, asset in release.assets do
-				if string.find(asset.name, "index.json") then
+				if string.find(asset.name, "index.json", 1, true) then
 					indexUrl = asset.browser_download_url
 					break
 				end
