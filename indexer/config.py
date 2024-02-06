@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-EMBEDDING_DIMENSIONS = 640
+EMBEDDING_DIMENSIONS = 1024
 SUMMARY_MODEL = "gpt-4-turbo-preview"
 
 INDEX_VERSION = "v0.3"
