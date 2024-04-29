@@ -59,9 +59,9 @@ def get_document_metadata(filepath, document):
     else:
         metadata_str = metadata_match.group(1)
         metadata_dict = yaml.load(metadata_str, Loader=Loader)
-        metadata["title"] = metadata_dict["title"] or os.path.basename(
-            filepath).replace(".md", "")
-        metadata["description"] = metadata_dict["description"] or ""
+        metadata["title"] = metadata_dict.get("title", os.path.basename(
+            filepath).replace(".md", ""))
+        metadata["description"] = metadata_dict.get("description", "")
 
     return metadata
 
