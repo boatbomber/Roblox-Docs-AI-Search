@@ -292,7 +292,8 @@ function DocsAISearch:Query(
 		self:Load()
 	end
 
-	local queryEmbedding = self:_requestVectorEmbedding(string.lower(query))
+	local queryEmbedding =
+		self:_requestVectorEmbedding("Represent this sentence for searching relevant passages: " .. string.lower(query))
 	if not queryEmbedding then
 		return {
 			token_usage = 0,

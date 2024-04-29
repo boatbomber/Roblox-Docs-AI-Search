@@ -1,12 +1,13 @@
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 EMBEDDING_MODEL = "WhereIsAI/UAE-Large-V1"
 SUMMARY_MODEL = "meta-llama/Llama-3-70b-chat-hf"
 
 EMBEDDING_TOKEN_LIMIT = 500
-EMBEDDING_BATCH_LIMIT = 1000
+EMBEDDING_BATCH_LIMIT = 25
 
 INDEX_VERSION = "v1.1"
 
@@ -23,9 +24,9 @@ GH_REQ_HEADERS = {
 }
 
 ALLOWLISTED_DOCUMENT_PATHS = {
-    'creator-docs-main/content/en-us/',  # All english documentation
+    "creator-docs-main/content/en-us/",  # All english documentation
 }
 ALLOWLISTED_DOCUMENT_FILETYPES = {
-    '.md',  # Tutorials
+    ".md",  # Tutorials
     # '.yaml', # API Reference
 }

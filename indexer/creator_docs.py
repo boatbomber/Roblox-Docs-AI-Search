@@ -19,14 +19,15 @@ SELFCLOSING_HTML_PATTERN = re.compile(r"<([^/]\w*)[^>]*/>", re.DOTALL)
 HTML_PATTERN = re.compile(r"<([^/]\w*)[^>]*>.*?</\1>", re.DOTALL)
 EXTRA_NEWLINES_PATTERN = re.compile(r"\n[\n\s]+", re.DOTALL)
 INLINE_LINKS_PATTERN = re.compile(r"\[(.*?)\]\(.*?\)", re.DOTALL)
-API_LINKING_WITH_NAME_PATTERN = re.compile(
-    r"`[A-Z]\w*?\.[^\n]*?\|(.*?)`", re.DOTALL)
+API_LINKING_WITH_NAME_PATTERN = re.compile(r"`[A-Z]\w*?\.[^\n]*?\|(.*?)`", re.DOTALL)
 API_LINKING_PATTERN = re.compile(r"`[A-Z]\w*?\.([^\n]*?)`", re.DOTALL)
 
 
 def fetch_tree_data():
     data_res = requests.get(
-        "https://api.github.com/repos/Roblox/creator-docs/git/trees/main:content?recursive=true", headers=config.GH_REQ_HEADERS)
+        "https://api.github.com/repos/Roblox/creator-docs/git/trees/main:content?recursive=true",
+        headers=config.GH_REQ_HEADERS,
+    )
     data_res.raise_for_status()
 
     data = data_res.json()
@@ -54,7 +55,6 @@ def get_document_metadata(filepath, document):
     file_name = os.path.basename(filepath).replace(".md", "")
 
     if metadata_match == None:
-        print("> Failed to get metadata for " + filepath)
         # Use filename as title
         metadata["title"] = file_name
         metadata["description"] = ""
@@ -113,15 +113,17 @@ def get_document_sections(content, metadata):
 
 def get_documents():
     data_res = requests.get(
-        "https://github.com/Roblox/creator-docs/archive/refs/heads/main.zip", headers=config.GH_REQ_HEADERS)
+        "https://github.com/Roblox/creator-docs/archive/refs/heads/main.zip",
+        headers=config.GH_REQ_HEADERS,
+    )
     data_res.raise_for_status()
     zipped = zipfile.ZipFile(io.BytesIO(data_res.content))
 
     documents = {}
     documentation_filepaths = [
-        path for path in zipped.namelist() if is_path_allowed(path)]
+        path for path in zipped.namelist() if is_path_allowed(path)
+    ]
 
-    total_files = len(documentation_filepaths)
     current_file = 0
 
     for filepath in documentation_filepaths:
