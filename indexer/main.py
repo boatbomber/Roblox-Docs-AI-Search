@@ -180,7 +180,7 @@ if __name__ == "__main__":
 Generated on {date.today()} from:
 - https://github.com/Roblox/creator-docs @ {creator_docs.get_sha()[:7]}
 - https://github.com/MaximumADHD/Roblox-Client-Tracker/tree/roblox/api-docs @ {api_reference.get_sha()[:7]}
-- Embedding Model: {config.EMBEDDING_MODEL}, Embedding Dimensions: {config.EMBEDDING_DIMENSIONS}
+- Embedding Model: {config.EMBEDDING_MODEL}
 - Summary Model: {config.SUMMARY_MODEL}
 - Index Version: {config.INDEX_VERSION}
 
