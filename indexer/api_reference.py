@@ -1,15 +1,9 @@
 import requests  # for fetching the docs
-import tiktoken  # for counting tokens
 import re  # for cutting metadata out of doc headers
 from json import dumps as json_dumps  # For debug printing
 
 import write
 import config
-
-
-def count_tokens(text: str) -> int:
-    """Return the number of tokens in a string."""
-    return len(tiktoken.get_encoding('cl100k_base').encode(text))
 
 
 def fetch_tree_data():
@@ -422,11 +416,6 @@ def createClassReference(classObj, api_docstrings):
     referenceDoc += "\n"
 
     referenceDoc = prepare_document_for_ingest(referenceDoc)
-    tokens = count_tokens(referenceDoc)
-    if tokens > 8100:
-        print("Skipping " + classObj['Name'] +
-              " because it has too many tokens (" + str(tokens) + ")")
-        return ""
 
     # write.write_text(referenceDoc, f"build/Class_{classObj['Name']}.md")
     return referenceDoc
