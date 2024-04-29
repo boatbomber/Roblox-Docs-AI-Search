@@ -1,5 +1,6 @@
 import os  # for creating the build directory
-from openai import OpenAI  # for generating embeddings and summaries
+from typing import List
+from together import Together  # for generating embeddings and summaries
 import tiktoken  # for counting tokens
 import json  # for exporting results
 from datetime import date  # for writing the date to the summary file
@@ -9,30 +10,31 @@ import config
 import creator_docs
 import api_reference
 
-openai_client = OpenAI(
-    api_key=config.OPENAI_API_KEY,
-)
+client = Together(api_key=config.TOGETHERAI_API_KEY)
+
+
 
 
 def count_tokens(text: str) -> int:
     """Return the number of tokens in a string."""
     return len(tiktoken.get_encoding('cl100k_base').encode(text))
 
-
-def get_embedding(content: [str]) -> [[float]]:
+def get_embeddings(texts: List[str], model: str = config.EMBEDDING_MODEL) -> List[List[float]]:
     """Return the embeddings for a list of strings."""
-    response = openai_client.embeddings.create(
-        input=content, model=config.EMBEDDING_MODEL, dimensions=config.EMBEDDING_DIMENSIONS)
-    return [item.embedding for item in response.data]
+    outputs = client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in texts])
+    return [outputs.data[i].embedding for i in range(len(texts))]
 
 
 def get_summary(content: str) -> str:
-    completion = openai_client.chat.completions.create(
+    completion = client.chat.completions.create(
         model=config.SUMMARY_MODEL,
         messages=[
             {
                 "role": "system",
-                "content": "You are a summary generator. Your summary will be used to create vector embeddings for content to improve semantic searches. When the user provides content, respond with a summary of the content.",
+                "content": "You are a summary generator. "
+                    "Your summary will be used to create vector embeddings for content to improve semantic searches. "
+                    "When the user provides content, respond with a summary of the content. "
+                    "Do NOT include any text other than the summary. Keep your summary to just a few sentences.",
             },
             {
                 "role": "user",
@@ -117,7 +119,7 @@ def create_docs_list(documents, reference):
             embed_batch.append(lower_embeddable_content)
 
         try:
-            embeddings = get_embedding(embed_batch)
+            embeddings = get_embeddings(embed_batch)
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)
@@ -145,7 +147,7 @@ def create_docs_list(documents, reference):
             continue
 
         try:
-            embeddings = get_embedding([lower_embeddable_content])
+            embeddings = get_embeddings([lower_embeddable_content])
             entry["embeddings"] = embeddings
             print("  Generated embeddings")
             docs_list.append(entry)

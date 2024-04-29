@@ -6,7 +6,7 @@ local HttpService = game:GetService("HttpService")
 
 export type Config = {
 	GithubKey: string,
-	OpenAIKey: string,
+	TogetherAIKey: string,
 	RelevanceThreshold: number?,
 	IndexSourceRepo: string?,
 }
@@ -35,12 +35,12 @@ export type NeighborInfo = {
 local DocsAISearch = {}
 DocsAISearch.__index = DocsAISearch
 
-DocsAISearch._supportedIndexVersion = "v0.3"
+DocsAISearch._supportedIndexVersion = "v1.0"
 
 function DocsAISearch.new(config: Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
-	assert(type(config.OpenAIKey) == "string", "DocsAISearch.new config['OpenAIKey'] must be a string")
+	assert(type(config.TogetherAIKey) == "string", "DocsAISearch.new config['TogetherAIKey'] must be a string")
 	assert(
 		config.RelevanceThreshold == nil or type(config.RelevanceThreshold) == "number",
 		"DocsAISearch.new config['RelevanceThreshold'] must be a number or nil"
@@ -57,7 +57,7 @@ function DocsAISearch.new(config: Config)
 		RelevanceThreshold = config.RelevanceThreshold or 0.4,
 		_IndexSourceRepo = config.IndexSourceRepo or "boatbomber/Roblox-Docs-AI-Search",
 		_GithubKey = config.GithubKey,
-		_OpenAIKey = config.OpenAIKey,
+		_TogetherAIKey = config.TogetherAIKey,
 		_IsLoading = false,
 	}, DocsAISearch)
 
@@ -80,37 +80,38 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 	assert(type(text) == "string", "DocumentationIndex:_requestVectorEmbedding must be called with a string")
 
 	local success, response = pcall(HttpService.RequestAsync, HttpService, {
-		Url = "https://api.openai.com/v1/embeddings",
+		Url = "https://api.together.xyz/v1/embeddings",
 		Method = "POST",
 		Headers = {
 			["Content-Type"] = "application/json",
-			["Authorization"] = "Bearer " .. self._OpenAIKey,
+			["Authorization"] = "Bearer " .. self._TogetherAIKey,
 		},
 		Body = HttpService:JSONEncode({
-			model = "text-embedding-3-small",
+			model = "togethercomputer/m2-bert-80M-8k-retrieval",
 			input = text,
-			dimensions = self._embeddingDimensions,
 		}),
 	})
 
 	if not success then
-		warn("Failed to get reply from OpenAI:", response)
+		warn("Failed to get reply from TogetherAI:", response)
 		return
 	end
 
 	if response.StatusCode ~= 200 then
-		warn("OpenAI responded with error code:", response.StatusCode, response.StatusMessage, response.Body)
+		warn("TogetherAI responded with error code:", response.StatusCode, response.StatusMessage, response.Body)
 		return
 	end
 
 	local decodeSuccess, decodeResponse = pcall(HttpService.JSONDecode, HttpService, response.Body)
 	if not decodeSuccess then
-		warn("Failed to decode OpenAI response body:", decodeResponse, response.Body)
+		warn("Failed to decode TogetherAI response body:", decodeResponse, response.Body)
 		return
 	end
 
+	local usage = if decodeResponse.usage then decodeResponse.usage else { total_tokens = 0 }
+
 	return {
-		token_usage = (decodeResponse.usage.total_tokens or 0),
+		token_usage = usage.total_tokens or 0,
 		embedding = decodeResponse.data[1].embedding,
 	}
 end

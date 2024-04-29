@@ -1,6 +1,6 @@
 requests
 PyYAML
-openai
+together
 pandas
 python-dotenv
 tiktoken

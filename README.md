@@ -3,14 +3,14 @@ AI vector embeddings of Roblox informational documents for semantic search
 
 ## Indexer
 
-Grabs content from the creator-docs repo, processes and chunks them, feeds that through OpenAI, and spits out `build/`.
+Grabs content from the creator-docs repo, processes and chunks them, feeds that through TogetherAI, and spits out `build/`.
 The GitHub workflow puts those outputs into a release so that you don't need to do this expensive step every time.
 
 ### How to run the indexer yourself
 
 Create a `.env` file:
 ```
-OPENAI_API_KEY=xx-XXXXXXXXXXXXXXXXXXXXXX
+TOGETHERAI_API_KEY=xx-XXXXXXXXXXXXXXXXXXXXXX
 GITHUB_TOKEN=xxx_XXXXXXXXXXXXXXXXXXXXXXX
 ```
 
@@ -31,14 +31,14 @@ Install using wally:
 
 ```toml
 [server-dependencies]
-DocsAISearch = "boatbomber/robloxdocsaisearch@0.3.2"
+DocsAISearch = "boatbomber/robloxdocsaisearch@1.0.0"
 ```
 
 ### Usage
 
 ```Lua
 local DocsAISearch = require(script.DocsAISearch).new({
-	OpenAIKey = Secrets.OpenAI,
+	TogetherAIKey = Secrets.TogetherAI,
 	GithubKey = Secrets.Github,
 	RelevanceThreshold = 0.3,
 })

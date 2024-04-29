@@ -2,17 +2,16 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-EMBEDDING_MODEL = "text-embedding-3-small"
-EMBEDDING_DIMENSIONS = 1024
-SUMMARY_MODEL = "gpt-4-turbo-preview"
+EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-8k-retrieval"
+SUMMARY_MODEL = "meta-llama/Llama-3-70b-chat-hf"
 
-INDEX_VERSION = "v0.3"
+INDEX_VERSION = "v1.0"
 
 # GitHub API token
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-# OpenAI API key for embedding model
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# TogetherAI API key for embedding & summary model
+TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY")
 
 GH_REQ_HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",
