@@ -203,7 +203,8 @@ if __name__ == "__main__":
 
     print(f"Created {len(docs_list)} data entries, generating embeddings now...")
 
-    for entry in docs_list:
+    for i, entry in enumerate(docs_list):
+        print(f"  Embedding {i}/{len(docs_list)}: {entry['title']} ({len(entry["embedding_texts"])} chunks)")
         entry["embeddings"] = get_embeddings(entry["embedding_texts"])
         del entry["embedding_texts"]
 
