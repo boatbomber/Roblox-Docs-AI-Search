@@ -169,6 +169,23 @@ def create_docs_list(documents, reference):
 
         entry["embedding_texts"].append(lower_embeddable_content)
 
+        try:
+            summary = get_summary(embeddable_content)
+            lower_summary = summary.lower()
+            print("  Generated summary")
+            entry["embedding_texts"].append(lower_summary)
+        except Exception as e:
+            print("  Failed to get summary", e)
+
+        try:
+            questions = get_questions(embeddable_content)
+            print("  Generated questions")
+            for question in questions:
+                lower_question = question.lower()
+                entry["embedding_texts"].append(lower_question)
+        except Exception as e:
+            print("  Failed to get questions", e)
+
         docs_list.append(entry)
 
     return docs_list
