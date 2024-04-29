@@ -152,7 +152,7 @@ def createEnumReference(enumObj, api_docstrings):
 
     api_docstring = api_docstrings[enumKey]
 
-    desc = api_docstring["documentation"] or ""
+    desc = api_docstring.get('documentation', "")
 
     code_sample = ""
     if 'code_sample' in api_docstring and api_docstring['code_sample'] != "":
@@ -162,8 +162,8 @@ def createEnumReference(enumObj, api_docstrings):
     if 'keys' in api_docstring and len(api_docstring['keys']) > 0:
         for itemName in api_docstring['keys']:
             itemDocstring = api_docstring['keys'][itemName]
-            itemDesc = itemDocstring['documentation'] or ""
-            itemCodeSample = itemDocstring['code_sample'] or ""
+            itemDesc = itemDocstring.get('documentation', "")
+            itemCodeSample = itemDocstring.get('code_sample', "")
             if itemCodeSample != "":
                 itemDesc += f"\n```Lua\n{itemCodeSample}\n```"
             if itemDesc != "":
@@ -190,7 +190,7 @@ def createClassReference(classObj, api_docstrings):
 
     api_docstring = api_docstrings[classKey]
 
-    desc = api_docstring["documentation"] or ""
+    desc = api_docstring.get('documentation', "")
 
     code_sample = ""
     if 'code_sample' in api_docstring and api_docstring['code_sample'] != "":
@@ -215,8 +215,8 @@ def createClassReference(classObj, api_docstrings):
                 propertyDescs.append(memberBaseDesc)
                 continue
             memberDocstring = api_docstrings[memberKey]
-            memberDesc = memberDocstring['documentation'] or ""
-            memberCodeSample = memberDocstring['code_sample'] or ""
+            memberDesc = memberDocstring.get('documentation', "")
+            memberCodeSample = memberDocstring.get('code_sample', "")
             if memberCodeSample != "":
                 memberDesc += f"\n```Lua\n{memberCodeSample}\n```"
             if memberDesc != "":
@@ -273,8 +273,8 @@ def createClassReference(classObj, api_docstrings):
                         f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}")
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
-            memberSummary = memberDocstring['documentation'] or ""
-            memberCodeSample = memberDocstring['code_sample'] or ""
+            memberSummary = memberDocstring.get('documentation', "")
+            memberCodeSample = memberDocstring.get('code_sample', "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
@@ -339,8 +339,8 @@ def createClassReference(classObj, api_docstrings):
                         f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}")
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
-            memberSummary = memberDocstring['documentation'] or ""
-            memberCodeSample = memberDocstring['code_sample'] or ""
+            memberSummary = memberDocstring.get('documentation', "")
+            memberCodeSample = memberDocstring.get('code_sample', "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
@@ -383,8 +383,8 @@ def createClassReference(classObj, api_docstrings):
                     f"- {param['Name']}: {param['Type']['Name']}")
             memberParamsDesc = "\n".join(memberParamsDesc)
 
-            memberSummary = memberDocstring['documentation'] or ""
-            memberCodeSample = memberDocstring['code_sample'] or ""
+            memberSummary = memberDocstring.get('documentation', "")
+            memberCodeSample = memberDocstring.get('code_sample', "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
