@@ -4,6 +4,7 @@ from together import Together  # for generating embeddings and summaries
 import tiktoken  # for counting tokens
 import json  # for exporting results
 from datetime import date  # for writing the date to the summary file
+import re
 
 import write
 import config
@@ -13,23 +14,27 @@ import api_reference
 client = Together(api_key=config.TOGETHERAI_API_KEY)
 
 
-
-
 def count_tokens(text: str) -> int:
     """Return the number of tokens in a string."""
     return len(tiktoken.get_encoding('cl100k_base').encode(text))
 
 def get_embeddings(texts: List[str], model: str = config.EMBEDDING_MODEL) -> List[List[float]]:
     """Return the embeddings for a list of strings."""
-    if len(texts) > config.EMBEDDING_BATCH_LIMIT:
-        # Split texts into multiple batches, then combine the results into a single return
-        batches = [texts[i:i + config.EMBEDDING_BATCH_LIMIT] for i in range(0, len(texts), config.EMBEDDING_BATCH_LIMIT)]
-        outputs = [client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in batch]) for batch in batches]
-        return [output.data[i].embedding for output in outputs for i in range(len(output.data))]
+    # First, split up any strings that are over the embedding token limit
+    for i, text in enumerate(texts):
+        if count_tokens(text) > config.EMBEDDING_TOKEN_LIMIT:
+            texts.pop(i) # Remove the text that is too large
+            chunks = [text[i:i + config.EMBEDDING_TOKEN_LIMIT] for i in range(0, len(text), config.EMBEDDING_TOKEN_LIMIT)]
+            # Insert the chunks into texts, without overwriting any other texts
+            for chunk in chunks:
+                texts.insert(i, chunk)
 
-    outputs = client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in texts])
-    return [outputs.data[i].embedding for i in range(len(texts))]
-
+    # Then, split texts into batches
+    batches = [texts[i:i + config.EMBEDDING_BATCH_LIMIT] for i in range(0, len(texts), config.EMBEDDING_BATCH_LIMIT)]
+    # Finally, get the embeddings for each batch
+    outputs = [client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in batch]) for batch in batches]
+    # Join them together for the final output
+    return [output.data[i].embedding for output in outputs for i in range(len(output.data))]
 
 def get_summary(content: str) -> str:
     completion = client.chat.completions.create(
@@ -49,6 +54,29 @@ def get_summary(content: str) -> str:
         ],
     )
     return completion.choices[0].message.content
+
+def get_questions(content: str) -> List[str]:
+    completion = client.chat.completions.create(
+        model=config.SUMMARY_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "Your job is to come up with questions that can be answered by the given documentation excerpt. "
+                    "Your questions will be used to create vector embeddings to improve semantic searches. "
+                    "For example, a documentation excerpt about animations can answer questions about how to make an NPC dance."
+                    "When the user provides a documentation excerpt, respond with several relevant questions that can be answered by the excerpt. "
+                    "Do NOT include any text other than the questions. Put each question on a new line.",
+            },
+            {
+                "role": "user",
+                "content": content,
+            },
+        ],
+    )
+    questions = completion.choices[0].message.content.splitlines()
+    # Strip "in Roblox" and "in Luau" and "in Roblox Studio" from the question text
+    return [re.sub(r"\sin Roblox|\sin Luau|\sin Roblox Studio", "", question, 0, re.IGNORECASE) for question in questions]
+
 
 
 def create_docs_list(documents, reference):
@@ -88,27 +116,11 @@ def create_docs_list(documents, reference):
             "title": metadata["title"],
             "content": content,
             "embeddings": [],
+            "embedding_texts": [],
         }
 
-        # Then we get the embeddings for the document, each section, and summaries
-        embed_batch = []
 
-        if count_tokens(lower_content) < config.EMBEDDING_TOKEN_LIMIT:
-            embed_batch.append(lower_content)
-        else:
-            print("  Skipping document embedding because it has too many tokens")
-
-        try:
-            summary = get_summary(content)
-            lower_summary = summary.lower()
-            print("  Generated summary")
-            if count_tokens(lower_summary) < config.EMBEDDING_TOKEN_LIMIT:
-                embed_batch.append(lower_summary)
-            else:
-                print("  Skipping summary embedding because it has too many tokens")
-
-        except Exception as e:
-            print("  Failed to get summary", e)
+        entry["embedding_texts"].append(lower_content)
 
         for header in sections:
             section_content = sections[header]
@@ -117,20 +129,26 @@ def create_docs_list(documents, reference):
                 metadata["title"] + "\n## " + metadata["description"] + \
                 "\n### " + header + "\n" + section_content
             lower_embeddable_content = embeddable_content.lower()
-            if count_tokens(lower_embeddable_content) > config.EMBEDDING_TOKEN_LIMIT:
-                print("  Skipping " + header +
-                      " content embedding because it has too many tokens")
-                continue
-
-            embed_batch.append(lower_embeddable_content)
+            entry["embedding_texts"].append(lower_embeddable_content)
 
         try:
-            embeddings = get_embeddings(embed_batch)
-            entry["embeddings"] = embeddings
-            print("  Generated embeddings")
-            docs_list.append(entry)
+            summary = get_summary(content)
+            lower_summary = summary.lower()
+            print("  Generated summary")
+            entry["embedding_texts"].append(lower_summary)
         except Exception as e:
-            print("  Failed to get embedding for " + metadata["title"], e)
+            print("  Failed to get summary", e)
+
+        try:
+            questions = get_questions(content)
+            print("  Generated questions")
+            for question in questions:
+                lower_question = question.lower()
+                entry["embedding_texts"].append(lower_question)
+        except Exception as e:
+            print("  Failed to get questions", e)
+
+        docs_list.append(entry)
 
     # Handle the API reference
     for key in reference:
@@ -146,19 +164,12 @@ def create_docs_list(documents, reference):
             "title": key,
             "content": embeddable_content,
             "embeddings": [],
+            "embedding_texts": [],
         }
 
-        if count_tokens(lower_embeddable_content) > config.EMBEDDING_TOKEN_LIMIT:
-            print("  Skipping content embedding because it has too many tokens")
-            continue
+        entry["embedding_texts"].append(lower_embeddable_content)
 
-        try:
-            embeddings = get_embeddings([lower_embeddable_content])
-            entry["embeddings"] = embeddings
-            print("  Generated embeddings")
-            docs_list.append(entry)
-        except Exception as e:
-            print("  Failed to get embedding", e)
+        docs_list.append(entry)
 
     return docs_list
 
@@ -173,6 +184,13 @@ if __name__ == "__main__":
     docs_list = create_docs_list(
         documents=documents, reference=reference)
 
+    print(f"Created {len(docs_list)} data entries, generating embeddings now...")
+
+    for entry in docs_list:
+        entry["embeddings"] = get_embeddings(entry["embedding_texts"])
+        del entry["embedding_texts"]
+
+
     json.dump(docs_list, open("build/index.json", "w"))
 
     write.write_text(f"""# Roblox Documentation Index
@@ -181,11 +199,11 @@ Generated on {date.today()} from:
 - https://github.com/Roblox/creator-docs @ {creator_docs.get_sha()[:7]}
 - https://github.com/MaximumADHD/Roblox-Client-Tracker/tree/roblox/api-docs @ {api_reference.get_sha()[:7]}
 - Embedding Model: {config.EMBEDDING_MODEL}
-- Summary Model: {config.SUMMARY_MODEL}
+- Summary & Questions Model: {config.SUMMARY_MODEL}
 - Index Version: {config.INDEX_VERSION}
 
 ## Embeddings
 
-With those files, {len(documents) + len(reference)} items were found, {len(docs_list)} were used, and {sum([len(item['embeddings']) for item in docs_list])} embeddings were created for them. The embeddings, along with content and metadata, can be found in `index.json`.""", "build/summary.md")
+With those files, {len(documents) + len(reference)} docs were found, {len(docs_list)} were used, and {sum([len(item['embeddings']) for item in docs_list])} embeddings were created for them. The embeddings, along with content and metadata, can be found in `index.json`.""", "build/summary.md")
 
     print("Documentation collection completed")

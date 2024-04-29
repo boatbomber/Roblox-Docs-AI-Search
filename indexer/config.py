@@ -2,13 +2,13 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-8k-retrieval"
+EMBEDDING_MODEL = "WhereIsAI/UAE-Large-V1"
 SUMMARY_MODEL = "meta-llama/Llama-3-70b-chat-hf"
 
-EMBEDDING_TOKEN_LIMIT = 8000
+EMBEDDING_TOKEN_LIMIT = 500
 EMBEDDING_BATCH_LIMIT = 1000
 
-INDEX_VERSION = "v1.0"
+INDEX_VERSION = "v1.1"
 
 # GitHub API token
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")

@@ -35,7 +35,7 @@ export type NeighborInfo = {
 local DocsAISearch = {}
 DocsAISearch.__index = DocsAISearch
 
-DocsAISearch._supportedIndexVersion = "v1.0"
+DocsAISearch._supportedIndexVersion = "v1.1"
 
 function DocsAISearch.new(config: Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
@@ -58,6 +58,7 @@ function DocsAISearch.new(config: Config)
 		_IndexSourceRepo = config.IndexSourceRepo or "boatbomber/Roblox-Docs-AI-Search",
 		_GithubKey = config.GithubKey,
 		_TogetherAIKey = config.TogetherAIKey,
+		_embeddingModel = "togethercomputer/m2-bert-80M-8k-retrieval",
 		_IsLoading = false,
 	}, DocsAISearch)
 
@@ -87,7 +88,7 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 			["Authorization"] = "Bearer " .. self._TogetherAIKey,
 		},
 		Body = HttpService:JSONEncode({
-			model = "togethercomputer/m2-bert-80M-8k-retrieval",
+			model = self._embeddingModel,
 			input = text,
 		}),
 	})
@@ -224,6 +225,12 @@ function DocsAISearch:Load()
 			end
 
 			if indexUrl then
+				-- Use the embedder model for this index
+				local embeddingModel = string.match(release.body, "Embedding Model: ([^\n]+)")
+				if embeddingModel then
+					self._embeddingModel = embeddingModel
+				end
+
 				break
 			end
 		end
