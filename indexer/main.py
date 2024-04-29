@@ -21,6 +21,12 @@ def count_tokens(text: str) -> int:
 
 def get_embeddings(texts: List[str], model: str = config.EMBEDDING_MODEL) -> List[List[float]]:
     """Return the embeddings for a list of strings."""
+    if len(texts) > config.EMBEDDING_BATCH_LIMIT:
+        # Split texts into multiple batches, then combine the results into a single return
+        batches = [texts[i:i + config.EMBEDDING_BATCH_LIMIT] for i in range(0, len(texts), config.EMBEDDING_BATCH_LIMIT)]
+        outputs = [client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in batch]) for batch in batches]
+        return [output.data[i].embedding for output in outputs for i in range(len(output.data))]
+
     outputs = client.embeddings.create(model=model, input=[text.replace("\n", " ") for text in texts])
     return [outputs.data[i].embedding for i in range(len(texts))]
 
@@ -87,7 +93,7 @@ def create_docs_list(documents, reference):
         # Then we get the embeddings for the document, each section, and summaries
         embed_batch = []
 
-        if count_tokens(lower_content) < 8100:
+        if count_tokens(lower_content) < config.EMBEDDING_TOKEN_LIMIT:
             embed_batch.append(lower_content)
         else:
             print("  Skipping document embedding because it has too many tokens")
@@ -96,7 +102,7 @@ def create_docs_list(documents, reference):
             summary = get_summary(content)
             lower_summary = summary.lower()
             print("  Generated summary")
-            if count_tokens(lower_summary) < 8100:
+            if count_tokens(lower_summary) < config.EMBEDDING_TOKEN_LIMIT:
                 embed_batch.append(lower_summary)
             else:
                 print("  Skipping summary embedding because it has too many tokens")
@@ -111,7 +117,7 @@ def create_docs_list(documents, reference):
                 metadata["title"] + "\n## " + metadata["description"] + \
                 "\n### " + header + "\n" + section_content
             lower_embeddable_content = embeddable_content.lower()
-            if count_tokens(lower_embeddable_content) > 8100:
+            if count_tokens(lower_embeddable_content) > config.EMBEDDING_TOKEN_LIMIT:
                 print("  Skipping " + header +
                       " content embedding because it has too many tokens")
                 continue
@@ -142,7 +148,7 @@ def create_docs_list(documents, reference):
             "embeddings": [],
         }
 
-        if count_tokens(lower_embeddable_content) > 8100:
+        if count_tokens(lower_embeddable_content) > config.EMBEDDING_TOKEN_LIMIT:
             print("  Skipping content embedding because it has too many tokens")
             continue
 

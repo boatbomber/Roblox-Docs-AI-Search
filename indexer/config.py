@@ -5,6 +5,9 @@ load_dotenv()
 EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-8k-retrieval"
 SUMMARY_MODEL = "meta-llama/Llama-3-70b-chat-hf"
 
+EMBEDDING_TOKEN_LIMIT = 8000
+EMBEDDING_BATCH_LIMIT = 1000
+
 INDEX_VERSION = "v1.0"
 
 # GitHub API token
