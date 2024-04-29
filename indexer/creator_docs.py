@@ -51,17 +51,23 @@ def get_document_metadata(filepath, document):
     metadata = {}
     metadata["path"] = filepath
 
+    file_name = os.path.basename(filepath).replace(".md", "")
+
     if metadata_match == None:
         print("> Failed to get metadata for " + filepath)
         # Use filename as title
-        metadata["title"] = os.path.basename(filepath).replace(".md", "")
+        metadata["title"] = file_name
         metadata["description"] = ""
     else:
         metadata_str = metadata_match.group(1)
         metadata_dict = yaml.load(metadata_str, Loader=Loader)
-        metadata["title"] = metadata_dict.get("title", os.path.basename(
-            filepath).replace(".md", ""))
+        metadata["title"] = metadata_dict.get("title", file_name)
         metadata["description"] = metadata_dict.get("description", "")
+
+    if metadata["title"] == "" or metadata["title"] is None:
+        metadata["title"] = file_name
+    if metadata["description"] is None:
+        metadata["description"] = ""
 
     return metadata
 
