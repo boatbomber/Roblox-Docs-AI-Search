@@ -133,10 +133,10 @@ def get_questions(content: str) -> list[str]:
         messages=[
             {
                 "role": "system",
-                "content": "Your job is to come up with questions that can be answered by the given documentation excerpt. "
+                "content": "Your job is to come up with three varied questions that can be answered by the given documentation excerpt. "
                 "Your questions will be used to create vector embeddings to improve semantic searches. "
                 "For example, a documentation excerpt about animations can answer questions about how to make an NPC dance."
-                "When the user provides a documentation excerpt, respond with several relevant questions that can be answered by the excerpt. "
+                "When the user provides a documentation excerpt, respond with three relevant questions that can be answered by the excerpt. "
                 "Do NOT include any text other than the questions. Put each question on a new line.",
             },
             {
