@@ -90,7 +90,7 @@ def get_embeddings(texts: list[str], model: str = EMBEDDING_MODEL) -> list[list[
     for batch in batches:
         try:
             response = client.embeddings.create(input=batch, model=model)
-            embeddings.append(response.data[0].embedding)
+            embeddings.extend([result.embedding for result in response.data])
         except Exception as e:
             print(
                 batch,
@@ -202,13 +202,6 @@ def process_document(
             )
     except Exception as e:
         print("  Failed to get questions", e)
-
-    print(
-        metadata.get("title", file_name),
-        "has",
-        len(embeddings_batch),
-        "embeddings to generate",
-    )
 
     return {
         "title": metadata.get("title", file_name),
