@@ -34,13 +34,16 @@ def fetch_tree_data():
     return data
 
 
-def is_path_allowed(path):
+def is_path_allowed(path: str):
     # Validate file extension
     if not path.endswith(tuple(config.ALLOWLISTED_DOCUMENT_FILETYPES)):
         return False
 
     # Validate file path
     if not path.startswith(tuple(config.ALLOWLISTED_DOCUMENT_PATHS)):
+        return False
+
+    if path.startswith(tuple(config.BLOCKLISTED_DOCUMENT_PATHS)):
         return False
 
     return True

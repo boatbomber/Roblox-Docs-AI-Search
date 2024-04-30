@@ -26,6 +26,9 @@ GH_REQ_HEADERS = {
 ALLOWLISTED_DOCUMENT_PATHS = {
     "creator-docs-main/content/en-us/",  # All english documentation
 }
+BLOCKLISTED_DOCUMENT_PATHS = {
+    "creator-docs-main/content/en-us/art/characters/facial-animation/facs-poses-reference",  # Just a bunch of videos, not helpful to us
+}
 ALLOWLISTED_DOCUMENT_FILETYPES = {
     ".md",  # Tutorials
     # '.yaml', # API Reference

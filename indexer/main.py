@@ -203,6 +203,13 @@ def process_document(
     except Exception as e:
         print("  Failed to get questions", e)
 
+    print(
+        metadata.get("title", file_name),
+        "has",
+        len(embeddings_batch),
+        "embeddings to generate",
+    )
+
     return {
         "title": metadata.get("title", file_name),
         "content": content,
@@ -211,7 +218,7 @@ def process_document(
 
 
 def index_documents(documents: dict[str, Any]) -> list[IndexEntry]:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
         results = list(
             tqdm(
                 executor.map(
