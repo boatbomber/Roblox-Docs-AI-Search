@@ -4,3 +4,5 @@ together
 angle-emb
 pandas
 python-dotenv
+transformers
+opt_einsum

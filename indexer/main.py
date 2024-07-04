@@ -5,25 +5,25 @@ import json
 import os
 import re
 import sys
-import json
 from datetime import date
+from typing import Any, TypedDict
+
+import api_reference
+import creator_docs
+import write
+from angle_emb import AnglE
+from config import (
+    EMBEDDING_BATCH_LIMIT,
+    EMBEDDING_MODEL,
+    EMBEDDING_TOKEN_LIMIT,
+    INDEX_VERSION,
+    QUESTION_MODEL,
+    SUMMARY_MODEL,
+    TOGETHERAI_API_KEY,
+)
 from dotenv import find_dotenv, load_dotenv
 from together import Together
 from tqdm import tqdm
-from typing import Any, TypedDict
-from angle_emb import AnglE
-
-from config import (
-    TOGETHERAI_API_KEY,
-    INDEX_VERSION,
-    SUMMARY_MODEL,
-    EMBEDDING_MODEL,
-    EMBEDDING_TOKEN_LIMIT,
-    EMBEDDING_BATCH_LIMIT,
-)
-import write
-import creator_docs
-import api_reference
 
 load_dotenv(find_dotenv())
 
@@ -129,7 +129,7 @@ def get_summary(content: str) -> str:
 
 def get_questions(content: str) -> list[str]:
     completion = client.chat.completions.create(
-        model=SUMMARY_MODEL,
+        model=QUESTION_MODEL,
         messages=[
             {
                 "role": "system",
@@ -147,12 +147,20 @@ def get_questions(content: str) -> list[str]:
     )
     questions = completion.choices[0].message.content.splitlines()
     # Strip "in Roblox" and "in Luau" and "in Roblox Studio" from the question text
-    return [
+    questions = [
         re.sub(
-            r"\sin Roblox|\sin Luau|\sin Roblox Studio", "", question, 0, re.IGNORECASE
-        )
+            r"\sin Roblox|\sin Luau?|\sin Roblox Studio", "", question, 0, re.IGNORECASE
+        ).strip()
         for question in questions
     ]
+    # Strip leading list markers
+    questions = [
+        re.sub(r"^\d+[\.\)]\s*", "", question).strip() for question in questions
+    ]
+    questions = [re.sub(r"^[\-\*]\s+", "", question).strip() for question in questions]
+    # Remove empty questions
+    questions = [question for question in questions if question]
+    return questions
 
 
 def process_document(
