@@ -1,14 +1,16 @@
-import requests  # for fetching the docs
 import re  # for cutting metadata out of doc headers
 from json import dumps as json_dumps  # For debug printing
 
-import write
 import config
+import requests  # for fetching the docs
+import write
 
 
 def fetch_tree_data():
     data_res = requests.get(
-        "https://api.github.com/repos/MaximumADHD/Roblox-Client-Tracker/git/trees/roblox?recursive=true", headers=config.GH_REQ_HEADERS)
+        "https://api.github.com/repos/MaximumADHD/Roblox-Client-Tracker/git/trees/roblox?recursive=true",
+        headers=config.GH_REQ_HEADERS,
+    )
     data_res.raise_for_status()
 
     data = data_res.json()
@@ -24,7 +26,7 @@ def prepare_document_for_ingest(document):
     document = document.replace("&mdash;", "—")
     document = document.replace("&ndash;", "–")
     document = document.replace("&nbsp;", " ")
-    document = document.replace("&quot;", "\"")
+    document = document.replace("&quot;", '"')
     document = document.replace("&apos;", "'")
     document = document.replace("&lt;", "<")
     document = document.replace("&gt;", ">")
@@ -61,8 +63,7 @@ def replace_xml_tags(item):
     elif isinstance(item, dict):
         for prop in item:
             if isinstance(item[prop], str):
-                bolded = re.sub(r"<strong>(.*?)</strong>",
-                                r"**\1**", item[prop])
+                bolded = re.sub(r"<strong>(.*?)</strong>", r"**\1**", item[prop])
                 italicized = re.sub(r"<em>(.*?)</em>", r"*\1*", bolded)
                 monospaced = re.sub(r"<code>(.*?)</code>", r"`\1`", italicized)
                 item[prop] = monospaced
@@ -78,9 +79,9 @@ def replace_api_identifiers(content, object):
             item = object[key]
             if isinstance(item, str) and is_api_identifier(item):
                 ref_obj = content[item]
-                if 'documentation' in ref_obj and len(ref_obj) == 1:
+                if "documentation" in ref_obj and len(ref_obj) == 1:
                     # If the ref object only has a documentation, replace the identifier with the documentation
-                    object[key] = ref_obj['documentation']
+                    object[key] = ref_obj["documentation"]
                 else:
                     object[key] = ref_obj
             else:
@@ -91,14 +92,13 @@ def replace_api_identifiers(content, object):
             item = object[key]
             if isinstance(item, str) and is_api_identifier(item):
                 ref_obj = content[item]
-                if 'documentation' in ref_obj and len(ref_obj) == 1:
+                if "documentation" in ref_obj and len(ref_obj) == 1:
                     # If the ref object only has a documentation, replace the identifier with the documentation
-                    object[key] = ref_obj['documentation']
+                    object[key] = ref_obj["documentation"]
                 else:
                     object[key] = ref_obj
             else:
-                replace_api_identifiers(
-                    content, item)
+                replace_api_identifiers(content, item)
 
 
 def get_api_dump():
@@ -139,25 +139,25 @@ def get_api_docstrings():
 
 
 def createEnumReference(enumObj, api_docstrings):
-    enumKey = '@roblox/enum/' + enumObj["Name"]
+    enumKey = "@roblox/enum/" + enumObj["Name"]
     if not enumKey in api_docstrings:
         # print("Couldn't find any docsstring for Enum." + enumObj["Name"])
         return ""
 
     api_docstring = api_docstrings[enumKey]
 
-    desc = api_docstring.get('documentation', "")
+    desc = api_docstring.get("documentation", "")
 
     code_sample = ""
-    if 'code_sample' in api_docstring and api_docstring['code_sample'] != "":
+    if "code_sample" in api_docstring and api_docstring["code_sample"] != "":
         code_sample = f"\n```Lua\n{api_docstring['code_sample']}\n```"
 
     itemDescs = []
-    if 'keys' in api_docstring and len(api_docstring['keys']) > 0:
-        for itemName in api_docstring['keys']:
-            itemDocstring = api_docstring['keys'][itemName]
-            itemDesc = itemDocstring.get('documentation', "")
-            itemCodeSample = itemDocstring.get('code_sample', "")
+    if "keys" in api_docstring and len(api_docstring["keys"]) > 0:
+        for itemName in api_docstring["keys"]:
+            itemDocstring = api_docstring["keys"][itemName]
+            itemDesc = itemDocstring.get("documentation", "")
+            itemCodeSample = itemDocstring.get("code_sample", "")
             if itemCodeSample != "":
                 itemDesc += f"\n```Lua\n{itemCodeSample}\n```"
             if itemDesc != "":
@@ -166,12 +166,14 @@ def createEnumReference(enumObj, api_docstrings):
                 itemDescs.append(f"- {itemName}")
     itemDescs = "\n".join(itemDescs)
 
-    referenceDoc = prepare_document_for_ingest(f"""# {enumObj["Name"]}
+    referenceDoc = prepare_document_for_ingest(
+        f"""# {enumObj["Name"]}
 {desc}{code_sample}
 
 ## Items
 {itemDescs}
-""")
+"""
+    )
     # write.write_text(referenceDoc, f"build/Enum_{enumObj['Name']}.md")
     return referenceDoc
 
@@ -184,10 +186,10 @@ def createClassReference(classObj, api_docstrings):
 
     api_docstring = api_docstrings[classKey]
 
-    desc = api_docstring.get('documentation', "")
+    desc = api_docstring.get("documentation", "")
 
     code_sample = ""
-    if 'code_sample' in api_docstring and api_docstring['code_sample'] != "":
+    if "code_sample" in api_docstring and api_docstring["code_sample"] != "":
         code_sample = f"\n```Lua\n{api_docstring['code_sample']}\n```"
 
     propertyDescs = []
@@ -196,21 +198,20 @@ def createClassReference(classObj, api_docstrings):
     callbackDescs = []
 
     for member in classObj["Members"]:
-        if "Tags" in member and "Deprecated" in member['Tags']:
+        if "Tags" in member and "Deprecated" in member["Tags"]:
             continue
         memberKey = classKey + "." + member["Name"]
         # print(memberKey)
 
         if member["MemberType"] == "Property":
-            memberBaseDesc = f"### {
-                member['Name']} ({member['ValueType']['Name']})"
+            memberBaseDesc = f"### {member['Name']} ({member['ValueType']['Name']})"
             if not memberKey in api_docstrings:
                 # print("Couldn't find any docsstring for property " + classObj['Name'] + "." + member["Name"])
                 propertyDescs.append(memberBaseDesc)
                 continue
             memberDocstring = api_docstrings[memberKey]
-            memberDesc = memberDocstring.get('documentation', "")
-            memberCodeSample = memberDocstring.get('code_sample', "")
+            memberDesc = memberDocstring.get("documentation", "")
+            memberCodeSample = memberDocstring.get("code_sample", "")
             if memberCodeSample != "":
                 memberDesc += f"\n```Lua\n{memberCodeSample}\n```"
             if memberDesc != "":
@@ -225,13 +226,13 @@ def createClassReference(classObj, api_docstrings):
                 memberParamsDesc = []
                 for param in member["Parameters"]:
                     memberParamsDesc.append(
-                        f"- {param['Name']}: {param['Type']['Name']}")
+                        f"- {param['Name']}: {param['Type']['Name']}"
+                    )
                 memberParamsDesc = "\n".join(memberParamsDesc)
 
                 memberReturnsDesc = f"- {member['ReturnType']['Name']}"
 
-                memberDesc = f"### {member['Name']
-                                    } ({member['ReturnType']['Name']})"
+                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
                 if memberParamsDesc != "":
                     memberDesc += f"\n\n**Parameters**\n{memberParamsDesc}"
                 if memberReturnsDesc != "":
@@ -243,41 +244,40 @@ def createClassReference(classObj, api_docstrings):
 
             memberDocstring = api_docstrings[memberKey]
             memberParamsDesc = []
-            for i in range(len(memberDocstring['params'])):
-                param = memberDocstring['params'][i]
-                if param['name'] == "self":
+            for i in range(len(memberDocstring["params"])):
+                param = memberDocstring["params"][i]
+                if param["name"] == "self":
                     continue
-                dumpParam = member["Parameters"][i-1]
+                dumpParam = member["Parameters"][i - 1]
 
                 memberParamsDesc.append(
-                    f"- {param['name']}: {dumpParam['Type']['Name']}\n{param['documentation']}")
+                    f"- {param['name']}: {dumpParam['Type']['Name']}\n{param['documentation']}"
+                )
             memberParamsDesc = "\n".join(memberParamsDesc)
 
             memberReturnsDesc = []
-            if len(memberDocstring['returns']) == 0:
-                if type(member['ReturnType']) == list:
-                    for ret in member['ReturnType']:
+            if len(memberDocstring["returns"]) == 0:
+                if type(member["ReturnType"]) == list:
+                    for ret in member["ReturnType"]:
                         memberReturnsDesc.append(f"- {ret['Name']}")
                 else:
-                    memberReturnsDesc.append(
-                        f"- {member['ReturnType']['Name']}")
+                    memberReturnsDesc.append(f"- {member['ReturnType']['Name']}")
             else:
-                for ret in memberDocstring['returns']:
+                for ret in memberDocstring["returns"]:
                     memberReturnsDesc.append(
-                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}")
+                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
+                    )
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
-            memberSummary = memberDocstring.get('documentation', "")
-            memberCodeSample = memberDocstring.get('code_sample', "")
+            memberSummary = memberDocstring.get("documentation", "")
+            memberCodeSample = memberDocstring.get("code_sample", "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
-            if type(member['ReturnType']) == list:
-                memberDesc = f"### {member['Name']
-                                    } ({', '.join([item['Name'] for item in member['ReturnType']])})"
+            if type(member["ReturnType"]) == list:
+                memberDesc = f"### {member['Name']} ({', '.join([item['Name'] for item in member['ReturnType']])})"
             else:
-                memberDesc = f"### {member['Name']
-                                    } ({member['ReturnType']['Name']})"
+                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
 
             if memberSummary != "":
                 memberDesc += f"\n{memberSummary}"
@@ -298,13 +298,13 @@ def createClassReference(classObj, api_docstrings):
                 memberParamsDesc = []
                 for param in member["Parameters"]:
                     memberParamsDesc.append(
-                        f"- {param['Name']}: {param['Type']['Name']}")
+                        f"- {param['Name']}: {param['Type']['Name']}"
+                    )
                 memberParamsDesc = "\n".join(memberParamsDesc)
 
                 memberReturnsDesc = f"- {member['ReturnType']['Name']}"
 
-                memberDesc = f"### {member['Name']
-                                    } ({member['ReturnType']['Name']})"
+                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
                 if memberParamsDesc != "":
                     memberDesc += f"\n\n**Parameters**\n{memberParamsDesc}"
                 if memberReturnsDesc != "":
@@ -316,30 +316,31 @@ def createClassReference(classObj, api_docstrings):
 
             memberDocstring = api_docstrings[memberKey]
             memberParamsDesc = []
-            for i in range(len(memberDocstring['params'])):
-                param = memberDocstring['params'][i]
+            for i in range(len(memberDocstring["params"])):
+                param = memberDocstring["params"][i]
                 dumpParam = member["Parameters"][i]
 
                 memberParamsDesc.append(
-                    f"- {param['name']}: {dumpParam['Type']['Name']}\n{param['documentation']}")
+                    f"- {param['name']}: {dumpParam['Type']['Name']}\n{param['documentation']}"
+                )
             memberParamsDesc = "\n".join(memberParamsDesc)
 
             memberReturnsDesc = []
-            if len(memberDocstring['returns']) == 0:
+            if len(memberDocstring["returns"]) == 0:
                 memberReturnsDesc.append(f"- {member['ReturnType']['Name']}")
             else:
-                for ret in memberDocstring['returns']:
+                for ret in memberDocstring["returns"]:
                     memberReturnsDesc.append(
-                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}")
+                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
+                    )
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
-            memberSummary = memberDocstring.get('documentation', "")
-            memberCodeSample = memberDocstring.get('code_sample', "")
+            memberSummary = memberDocstring.get("documentation", "")
+            memberCodeSample = memberDocstring.get("code_sample", "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
-            memberDesc = f"### {member['Name']
-                                } ({member['ReturnType']['Name']})"
+            memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
             if memberSummary != "":
                 memberDesc += f"\n{memberSummary}"
             if memberParamsDesc != "":
@@ -359,7 +360,8 @@ def createClassReference(classObj, api_docstrings):
                 memberParamsDesc = []
                 for param in member["Parameters"]:
                     memberParamsDesc.append(
-                        f"- {param['Name']}: {param['Type']['Name']}")
+                        f"- {param['Name']}: {param['Type']['Name']}"
+                    )
                 memberParamsDesc = "\n".join(memberParamsDesc)
 
                 memberDesc = f"### {member['Name']}"
@@ -373,12 +375,11 @@ def createClassReference(classObj, api_docstrings):
             memberDocstring = api_docstrings[memberKey]
             memberParamsDesc = []
             for param in member["Parameters"]:
-                memberParamsDesc.append(
-                    f"- {param['Name']}: {param['Type']['Name']}")
+                memberParamsDesc.append(f"- {param['Name']}: {param['Type']['Name']}")
             memberParamsDesc = "\n".join(memberParamsDesc)
 
-            memberSummary = memberDocstring.get('documentation', "")
-            memberCodeSample = memberDocstring.get('code_sample', "")
+            memberSummary = memberDocstring.get("documentation", "")
+            memberCodeSample = memberDocstring.get("code_sample", "")
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
@@ -393,15 +394,28 @@ def createClassReference(classObj, api_docstrings):
 
             eventDescs.append(memberDesc)
         else:
-            print("Unhandled member type: " +
-                  classObj['Name'] + '.' + member['Name'] + '.' + member["MemberType"])
+            print(
+                "Unhandled member type: "
+                + classObj["Name"]
+                + "."
+                + member["Name"]
+                + "."
+                + member["MemberType"]
+            )
 
     propertyDescs = "\n\n".join(propertyDescs)
     methodDescs = "\n\n".join(methodDescs)
     eventDescs = "\n\n".join(eventDescs)
     callableDescs = "\n\n".join(callbackDescs)
 
-    if desc == '' and code_sample == '' and propertyDescs == '' and methodDescs == '' and eventDescs == '' and callableDescs == '':
+    if (
+        desc == ""
+        and code_sample == ""
+        and propertyDescs == ""
+        and methodDescs == ""
+        and eventDescs == ""
+        and callableDescs == ""
+    ):
         return ""
 
     referenceDoc = f"# {classObj['Name']}\n{desc}{code_sample}"
@@ -430,7 +444,7 @@ def get_reference():
     for enumObj in api_dump["Enums"]:
         enum_reference = createEnumReference(enumObj, api_docstrings)
         if enum_reference != "":
-            api_reference['Enum.' + enumObj["Name"]] = enum_reference
+            api_reference["Enum." + enumObj["Name"]] = enum_reference
 
     for classObj in api_dump["Classes"]:
         class_reference = createClassReference(classObj, api_docstrings)
