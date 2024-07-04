@@ -11,7 +11,6 @@ from typing import Any, TypedDict
 import api_reference
 import creator_docs
 import write
-from angle_emb import AnglE
 from config import (
     EMBEDDING_BATCH_LIMIT,
     EMBEDDING_MODEL,
@@ -24,6 +23,7 @@ from config import (
 from dotenv import find_dotenv, load_dotenv
 from together import Together
 from tqdm import tqdm
+from transformers import AutoTokenizer
 
 load_dotenv(find_dotenv())
 
@@ -37,18 +37,13 @@ class IndexEntry(TypedDict, total=False):
     embeddings: list[list[float]]
 
 
-angle = AnglE.from_pretrained(EMBEDDING_MODEL, pooling_strategy="cls")
+tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
 
 
 def count_tokens(text: str) -> int:
     """Return the number of tokens in a string."""
-    return len(
-        angle.tokenizer.encode(
-            text,
-            truncation=False,
-            add_special_tokens=False,
-        )
-    )
+    tokenized_text_result = tokenizer(text)
+    return len(tokenized_text_result.get("input_ids", []))
 
 
 def get_embeddings(texts: list[str], model: str = EMBEDDING_MODEL) -> list[list[float]]:
