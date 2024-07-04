@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-8k-retrieval"
+EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-2k-retrieval"
 SUMMARY_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 QUESTION_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 
-EMBEDDING_TOKEN_LIMIT = 3000
+EMBEDDING_TOKEN_LIMIT = 1200
 EMBEDDING_BATCH_LIMIT = 25
 
 INDEX_VERSION = "v1.1"
