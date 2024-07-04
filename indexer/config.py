@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 EMBEDDING_MODEL = "togethercomputer/m2-bert-80M-8k-retrieval"
-SUMMARY_MODEL = "meta-llama/Llama-3-70b-chat-hf"
+SUMMARY_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 QUESTION_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
 
-EMBEDDING_TOKEN_LIMIT = 4000
+EMBEDDING_TOKEN_LIMIT = 3000
 EMBEDDING_BATCH_LIMIT = 25
 
 INDEX_VERSION = "v1.1"

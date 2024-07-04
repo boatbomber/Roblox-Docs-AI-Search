@@ -124,7 +124,8 @@ def get_summary(content: str) -> str:
             },
         ],
     )
-    return completion.choices[0].message.content
+    summary = completion.choices[0].message.content
+    return summary.strip()
 
 
 def get_questions(content: str) -> list[str]:
