@@ -234,13 +234,15 @@ def index_documents(documents: dict[str, Any]) -> list[IndexEntry]:
 def output_results(index: list[IndexEntry]):
     json.dump(index, open("build/index.json", "w"))
 
+    embedding_dimensions = len(index[0]["embeddings"][0])
+
     write.write_text(
         f"""# Roblox Documentation Index
 
 Generated on {date.today()} from:
 - https://github.com/Roblox/creator-docs @ {creator_docs.get_sha()[:7]}
 - https://github.com/MaximumADHD/Roblox-Client-Tracker/tree/roblox/api-docs @ {api_reference.get_sha()[:7]}
-- Embedding Model: {EMBEDDING_MODEL}
+- Embedding Model: {EMBEDDING_MODEL} ({embedding_dimensions} dimensions)
 - Summary Model: {SUMMARY_MODEL}
 - Question Model: {QUESTION_MODEL}
 - Index Version: {INDEX_VERSION}
