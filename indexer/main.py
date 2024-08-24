@@ -103,6 +103,7 @@ def load_documents() -> dict[str, str]:
 
 
 def get_summary(content: str) -> str:
+    print("Getting summary for", content[:100] + ("..." if len(content) > 100 else ""))
     completion = client.chat.completions.create(
         model=SUMMARY_MODEL,
         messages=[
@@ -124,6 +125,9 @@ def get_summary(content: str) -> str:
 
 
 def get_questions(content: str) -> list[str]:
+    print(
+        "Getting questions for", content[:100] + ("..." if len(content) > 100 else "")
+    )
     completion = client.chat.completions.create(
         model=QUESTION_MODEL,
         messages=[
@@ -215,7 +219,7 @@ def process_document(
 
 
 def index_documents(documents: dict[str, Any]) -> list[IndexEntry]:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         results = list(
             tqdm(
                 executor.map(
