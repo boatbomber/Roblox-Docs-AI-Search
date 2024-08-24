@@ -4,40 +4,14 @@
 
 local HttpService = game:GetService("HttpService")
 
-export type Config = {
-	GithubKey: string,
-	TogetherAIKey: string,
-	RelevanceThreshold: number?,
-	IndexSourceRepo: string?,
-}
-
-export type Vector = { number }
-
-export type SourceDocument = {
-	type: string,
-	title: string,
-	content: string,
-	embeddings: { Vector },
-}
-
-export type Document = {
-	type: string,
-	title: string,
-	content: string,
-	relevance: number,
-}
-
-export type NeighborInfo = {
-	relevance: number,
-	item: SourceDocument,
-}
+local types = require(script.types)
+local versioning = require(script.versioning)
+local util = require(script.util)
 
 local DocsAISearch = {}
 DocsAISearch.__index = DocsAISearch
 
-DocsAISearch._supportedIndexVersion = "v1.1"
-
-function DocsAISearch.new(config: Config)
+function DocsAISearch.new(config: types.Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
 	assert(type(config.TogetherAIKey) == "string", "DocsAISearch.new config['TogetherAIKey'] must be a string")
@@ -65,7 +39,7 @@ function DocsAISearch.new(config: Config)
 	return self
 end
 
-function DocsAISearch:_cosineSimilarityUnit(queryVector: Vector, comparisons: { Vector }): number
+function DocsAISearch:_cosineSimilarityUnit(queryVector: types.Vector, comparisons: { types.Vector }): number
 	-- Because the vectors are unit vectors, the dot product is the cosine similarity
 	-- since magnitude is 1 for both vectors
 	local dots = table.create(#comparisons, 0)
@@ -77,7 +51,7 @@ function DocsAISearch:_cosineSimilarityUnit(queryVector: Vector, comparisons: { 
 	return math.max(table.unpack(dots))
 end
 
-function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: number, embedding: Vector? }?
+function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: number, embedding: types.Vector? }?
 	assert(type(text) == "string", "DocumentationIndex:_requestVectorEmbedding must be called with a string")
 
 	local success, response = pcall(HttpService.RequestAsync, HttpService, {
@@ -117,12 +91,12 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 	}
 end
 
-function DocsAISearch:_findKNearestNeighbors(vector: Vector, k: number): { NeighborInfo }
-	local nearestNeighbors: { NeighborInfo } = table.create(k + 1)
+function DocsAISearch:_findKNearestNeighbors(vector: types.Vector, k: number): { types.NeighborInfo }
+	local nearestNeighbors: { types.NeighborInfo } = table.create(k + 1)
 
 	-- For our dataset size, a linear search is acceptable. If we add more documents, we can use ANN search algorithms.
 	local worstRelevance, count = 1, 0
-	for _, document: SourceDocument in self.Documents do
+	for _, document: types.SourceDocument in self.Documents do
 		local relevance: number = self:_cosineSimilarityUnit(vector, document.embeddings)
 		if relevance < self.RelevanceThreshold then
 			-- Drop results below threshold
@@ -216,24 +190,28 @@ function DocsAISearch:Load()
 	local indexUrl = nil
 	for _, release in releasesDecodeResponse do
 		local releaseVersion = string.match(release.body, "Index Version: (v[%d%.]+)") or "v0.2"
-		if releaseVersion == self._supportedIndexVersion then
-			for _, asset in release.assets do
-				if string.find(asset.name, "index.json", 1, true) then
-					indexUrl = asset.browser_download_url
-					break
-				end
-			end
+		if not versioning:isSupportedVersion(releaseVersion) then
+			continue
+		end
 
-			if indexUrl then
-				-- Use the embedder model for this index
-				local embeddingModel = string.match(release.body, "Embedding Model: ([^\n]+)")
-				if embeddingModel then
-					self._embeddingModel = embeddingModel
-				end
-
+		for _, asset in release.assets do
+			if string.find(asset.name, "index.json", 1, true) then
+				indexUrl = asset.browser_download_url
 				break
 			end
 		end
+
+		if not indexUrl then
+			continue
+		end
+
+		-- Use the embedder model for this index
+		local embeddingModel = string.match(release.body, "Embedding Model: ([^\n]+)")
+		if embeddingModel then
+			self._embeddingModel = util.stripString(embeddingModel)
+		end
+
+		break
 	end
 
 	if not indexUrl then
@@ -283,7 +261,7 @@ end
 function DocsAISearch:Query(
 	query: string,
 	count: number?
-): { token_usage: number, result: { error: string?, documents: { Document }? } }
+): { token_usage: number, result: { error: string?, documents: { types.Document }? } }
 	assert(type(query) == "string", "DocsAISearch:Query query must be a string")
 	assert(count == nil or type(count) == "number", "DocsAISearch:Query count must be a number or nil")
 
