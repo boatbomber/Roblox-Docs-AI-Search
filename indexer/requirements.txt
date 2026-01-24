@@ -1,7 +1,0 @@
-requests
-PyYAML
-together
-pandas
-python-dotenv
-transformers
-opt_einsum

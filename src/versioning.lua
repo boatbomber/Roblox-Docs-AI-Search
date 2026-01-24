@@ -1,6 +1,6 @@
 local versioning = {}
 
-versioning.supportedVersion = { 1, 1, 0 } -- Major, Minor, Patch
+versioning.supportedVersion = { 2, 0, 0 } -- Major, Minor, Patch
 
 function versioning:isSupportedVersion(versionString: string): boolean
 	local sanitizedVersionString = string.gsub(versionString, "[^0-9.]", "")

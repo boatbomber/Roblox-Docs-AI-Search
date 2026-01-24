@@ -230,9 +230,18 @@ def createClassReference(classObj, api_docstrings):
                     )
                 memberParamsDesc = "\n".join(memberParamsDesc)
 
-                memberReturnsDesc = f"- {member['ReturnType']['Name']}"
+                if type(member["ReturnType"]) == list:
+                    memberReturnsDesc = "\n".join(
+                        [f"- {ret['Name']}" for ret in member["ReturnType"]]
+                    )
+                    returnTypeStr = ", ".join(
+                        [item["Name"] for item in member["ReturnType"]]
+                    )
+                else:
+                    memberReturnsDesc = f"- {member['ReturnType']['Name']}"
+                    returnTypeStr = member["ReturnType"]["Name"]
 
-                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
+                memberDesc = f"### {member['Name']} ({returnTypeStr})"
                 if memberParamsDesc != "":
                     memberDesc += f"\n\n**Parameters**\n{memberParamsDesc}"
                 if memberReturnsDesc != "":
@@ -264,9 +273,14 @@ def createClassReference(classObj, api_docstrings):
                     memberReturnsDesc.append(f"- {member['ReturnType']['Name']}")
             else:
                 for ret in memberDocstring["returns"]:
-                    memberReturnsDesc.append(
-                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
-                    )
+                    if type(member["ReturnType"]) == list:
+                        memberReturnsDesc.append(
+                            f"- {ret['documentation'] if isinstance(ret, dict) else ret}"
+                        )
+                    else:
+                        memberReturnsDesc.append(
+                            f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
+                        )
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
             memberSummary = memberDocstring.get("documentation", "")
@@ -302,9 +316,18 @@ def createClassReference(classObj, api_docstrings):
                     )
                 memberParamsDesc = "\n".join(memberParamsDesc)
 
-                memberReturnsDesc = f"- {member['ReturnType']['Name']}"
+                if type(member["ReturnType"]) == list:
+                    memberReturnsDesc = "\n".join(
+                        [f"- {ret['Name']}" for ret in member["ReturnType"]]
+                    )
+                    returnTypeStr = ", ".join(
+                        [item["Name"] for item in member["ReturnType"]]
+                    )
+                else:
+                    memberReturnsDesc = f"- {member['ReturnType']['Name']}"
+                    returnTypeStr = member["ReturnType"]["Name"]
 
-                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
+                memberDesc = f"### {member['Name']} ({returnTypeStr})"
                 if memberParamsDesc != "":
                     memberDesc += f"\n\n**Parameters**\n{memberParamsDesc}"
                 if memberReturnsDesc != "":
@@ -327,12 +350,21 @@ def createClassReference(classObj, api_docstrings):
 
             memberReturnsDesc = []
             if len(memberDocstring["returns"]) == 0:
-                memberReturnsDesc.append(f"- {member['ReturnType']['Name']}")
+                if type(member["ReturnType"]) == list:
+                    for ret in member["ReturnType"]:
+                        memberReturnsDesc.append(f"- {ret['Name']}")
+                else:
+                    memberReturnsDesc.append(f"- {member['ReturnType']['Name']}")
             else:
                 for ret in memberDocstring["returns"]:
-                    memberReturnsDesc.append(
-                        f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
-                    )
+                    if type(member["ReturnType"]) == list:
+                        memberReturnsDesc.append(
+                            f"- {ret['documentation'] if isinstance(ret, dict) else ret}"
+                        )
+                    else:
+                        memberReturnsDesc.append(
+                            f"- {member['ReturnType']['Name']}: {ret['documentation'] if isinstance(ret, dict) else ret}"
+                        )
             memberReturnsDesc = "\n".join(memberReturnsDesc)
 
             memberSummary = memberDocstring.get("documentation", "")
@@ -340,7 +372,10 @@ def createClassReference(classObj, api_docstrings):
             if memberCodeSample != "":
                 memberCodeSample = f"\n```Lua\n{memberCodeSample}\n```"
 
-            memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
+            if type(member["ReturnType"]) == list:
+                memberDesc = f"### {member['Name']} ({', '.join([item['Name'] for item in member['ReturnType']])})"
+            else:
+                memberDesc = f"### {member['Name']} ({member['ReturnType']['Name']})"
             if memberSummary != "":
                 memberDesc += f"\n{memberSummary}"
             if memberParamsDesc != "":
@@ -457,6 +492,11 @@ def get_reference():
 
 
 def get_sha():
-    data = fetch_tree_data()
-    write.write_text(data["sha"], "build/api-source-commit.txt")
-    return data["sha"]
+    try:
+        data = fetch_tree_data()
+        write.write_text(data["sha"], "build/api-source-commit.txt")
+        return data["sha"]
+    except Exception as e:
+        print(f"Warning: Could not fetch api-reference SHA: {e}")
+        write.write_text("unknown", "build/api-source-commit.txt")
+        return "unknown"

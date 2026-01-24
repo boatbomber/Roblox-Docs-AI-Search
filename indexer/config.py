@@ -4,20 +4,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
-SUMMARY_MODEL = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
-QUESTION_MODEL = "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+EMBEDDING_MODEL = "qwen/qwen3-embedding-8b"
+SUMMARY_MODEL = "openai/gpt-oss-20b"
+QUESTION_MODEL = "openai/gpt-oss-20b"
 
-EMBEDDING_TOKEN_LIMIT = 500
+EMBEDDING_TOKEN_LIMIT = 16000
 EMBEDDING_BATCH_LIMIT = 25
 
-INDEX_VERSION = "v1.1"
+INDEX_VERSION = "v2.0.0"
 
 # GitHub API token
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-# TogetherAI API key for embedding & summary model
-TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY")
+# OpenRouter API key for embedding & summary model
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 GH_REQ_HEADERS = {
     "Authorization": f"Bearer {GITHUB_TOKEN}",

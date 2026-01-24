@@ -14,7 +14,7 @@ DocsAISearch.__index = DocsAISearch
 function DocsAISearch.new(config: types.Config)
 	assert(type(config) == "table", "DocsAISearch.new must be called with a config table")
 	assert(type(config.GithubKey) == "string", "DocsAISearch.new config['GithubKey'] must be a string")
-	assert(type(config.TogetherAIKey) == "string", "DocsAISearch.new config['TogetherAIKey'] must be a string")
+	assert(type(config.OpenRouterKey) == "string", "DocsAISearch.new config['OpenRouterKey'] must be a string")
 	assert(
 		config.RelevanceThreshold == nil or type(config.RelevanceThreshold) == "number",
 		"DocsAISearch.new config['RelevanceThreshold'] must be a number or nil"
@@ -31,8 +31,8 @@ function DocsAISearch.new(config: types.Config)
 		RelevanceThreshold = config.RelevanceThreshold or 0.4,
 		_IndexSourceRepo = config.IndexSourceRepo or "boatbomber/Roblox-Docs-AI-Search",
 		_GithubKey = config.GithubKey,
-		_TogetherAIKey = config.TogetherAIKey,
-		_embeddingModel = "togethercomputer/m2-bert-80M-8k-retrieval",
+		_OpenRouterKey = config.OpenRouterKey,
+		_embeddingModel = "qwen/qwen3-embedding-8b",
 		_IsLoading = false,
 	}, DocsAISearch)
 
@@ -55,11 +55,11 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 	assert(type(text) == "string", "DocumentationIndex:_requestVectorEmbedding must be called with a string")
 
 	local success, response = pcall(HttpService.RequestAsync, HttpService, {
-		Url = "https://api.together.xyz/v1/embeddings",
+		Url = "https://openrouter.ai/api/v1/embeddings",
 		Method = "POST",
 		Headers = {
 			["Content-Type"] = "application/json",
-			["Authorization"] = "Bearer " .. self._TogetherAIKey,
+			["Authorization"] = "Bearer " .. self._OpenRouterKey,
 		},
 		Body = HttpService:JSONEncode({
 			model = self._embeddingModel,
@@ -68,18 +68,18 @@ function DocsAISearch:_requestVectorEmbedding(text: string): { token_usage: numb
 	})
 
 	if not success then
-		warn("Failed to get reply from TogetherAI:", response)
+		warn("Failed to get reply from OpenRouter:", response)
 		return
 	end
 
 	if response.StatusCode ~= 200 then
-		warn("TogetherAI responded with error code:", response.StatusCode, response.StatusMessage, response.Body)
+		warn("OpenRouter responded with error code:", response.StatusCode, response.StatusMessage, response.Body)
 		return
 	end
 
 	local decodeSuccess, decodeResponse = pcall(HttpService.JSONDecode, HttpService, response.Body)
 	if not decodeSuccess then
-		warn("Failed to decode TogetherAI response body:", decodeResponse, response.Body)
+		warn("Failed to decode OpenRouter response body:", decodeResponse, response.Body)
 		return
 	end
 

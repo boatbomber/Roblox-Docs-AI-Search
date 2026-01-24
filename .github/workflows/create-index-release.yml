@@ -1,7 +1,13 @@
-name: 'Index Roblox Documentation'
+name: "Index Roblox Documentation"
 
 on:
   workflow_dispatch:
+    inputs:
+      enable_questions:
+        description: "Enable question generation (increases cost and index size)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   fetch:
@@ -21,12 +27,20 @@ jobs:
       - name: Install python dependencies
         run: pip install -r indexer/requirements.txt
 
+      - name: Restore indexer cache
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: indexer-cache-${{ hashFiles('indexer/config.py', 'indexer/cache.py') }}
+          restore-keys: |
+            indexer-cache-
+
       - name: Index documentation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TOGETHERAI_API_KEY: ${{ secrets.TOGETHERAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          python indexer/main.py
+          python indexer/main.py ${{ inputs.enable_questions == true && '--enable-questions' || '' }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

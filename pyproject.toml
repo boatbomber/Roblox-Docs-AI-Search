@@ -1,0 +1,15 @@
+[project]
+name = "roblox-docs-ai-search"
+version = "0.1.0"
+description = ""
+authors = [{ name = "boatbomber", email = "zack@boatbomber.com" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["requests", "PyYAML", "openai", "transformers", "pandas", "python-dotenv"]
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,6 +1,6 @@
 export type Config = {
 	GithubKey: string,
-	TogetherAIKey: string,
+	OpenRouterKey: string,
 	RelevanceThreshold: number?,
 	IndexSourceRepo: string?,
 }

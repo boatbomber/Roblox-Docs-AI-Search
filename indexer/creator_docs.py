@@ -1,12 +1,12 @@
-import os  # for managing paths
-import requests  # for fetching the docs
-import zipfile  # for extracting the docs
 import io  # for reading the zip file
-import yaml  # for reading the metadata of doc files
+import os  # for managing paths
 import re  # for cutting metadata out of doc headers
+import zipfile  # for extracting the docs
 
-import write
 import config
+import requests  # for fetching the docs
+import write
+import yaml  # for reading the metadata of doc files
 
 try:
     from yaml import CLoader as Loader
@@ -140,6 +140,11 @@ def get_documents():
 
 
 def get_sha():
-    data = fetch_tree_data()
-    write.write_text(data["sha"], "build/docs-source-commit.txt")
-    return data["sha"]
+    try:
+        data = fetch_tree_data()
+        write.write_text(data["sha"], "build/docs-source-commit.txt")
+        return data["sha"]
+    except Exception as e:
+        print(f"Warning: Could not fetch creator-docs SHA: {e}")
+        write.write_text("unknown", "build/docs-source-commit.txt")
+        return "unknown"
