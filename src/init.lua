@@ -206,7 +206,7 @@ function DocsAISearch:Load()
 		end
 
 		-- Use the embedder model for this index
-		local embeddingModel = string.match(release.body, "Embedding Model: ([^\n]+)")
+		local embeddingModel = string.match(release.body, "Embedding Model: ([^%s]+)")
 		if embeddingModel then
 			self._embeddingModel = util.stripString(embeddingModel)
 		end

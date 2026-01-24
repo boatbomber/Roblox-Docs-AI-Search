@@ -67,7 +67,7 @@ Install via [Wally](https://wally.run):
 
 ```toml
 [server-dependencies]
-DocsAISearch = "boatbomber/robloxdocsaisearch@1.3.0"
+DocsAISearch = "boatbomber/robloxdocsaisearch@1.3.1"
 ```
 
 ## Usage
